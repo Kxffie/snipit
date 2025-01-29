@@ -101,6 +101,6 @@ If you find this project helpful, please ⭐ the repo! Have feedback? Open an is
 
 For questions or suggestions, reach out via: 
 - **Discord**: kxffie
-- **Twitter**: [@yourhandle](https://twitter.com/yourhandle)
+- **Twitter**: [@kxffie](https://x.com/kxffie)
 
 ---
