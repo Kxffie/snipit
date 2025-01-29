@@ -1,0 +1,20 @@
+[package]
+name = "snipit"
+version = "0.0.0"
+description = "A Code Snippet Manager"
+authors = ["kxffie"]
+edition = "2025"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "1", features = [] }
+
+[dependencies]
+tauri = { version = "1", features = [ "fs-write-file", "fs-read-file", "dialog-open", "shell-open"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[features]
+# This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]
