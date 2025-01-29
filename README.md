@@ -11,21 +11,6 @@ SnipIt is a **code snippet manager** designed to help developers store, search, 
 - **GitHub Backup**: Sync snippets to a public or private GitHub repository.
 - **Fast Search**: Quickly find stored snippets with keyword and tag filtering.
 
-# SnipIt - Code Snippet Manager
-
-![SnipIt Logo](https://your-image-url.com/logo.png) *(Replace with actual logo if available)*
-
-SnipIt is a **code snippet manager** designed to help developers store, search, and retrieve reusable code effortlessly. No more digging through old projects—just **save, search, and copy**.
-
----
-
-## 🚀 Features
-
-- **Offline-first**: Works locally for instant access.
-- **Tagging System**: Organize snippets by language, project type, and custom tags.
-- **GitHub Backup**: Sync snippets to a public or private GitHub repository.
-- **Fast Search**: Quickly find stored snippets with keyword and tag filtering.
-
 ---
 
 ## 📦 Installation
