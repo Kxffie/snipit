@@ -19,7 +19,7 @@ SnipIt is a **code snippet manager** designed to help developers store, search, 
 You can install SnipIt in three ways:
 
 1. **Website Download:**
-   - Visit [SnipIt Official Website](https://google.com) and download the latest version.
+   - Visit [SnipIt Official Website](https://google.com) and download the latest version. (Coming Soon)
 
 2. **GitHub Releases:**
    - On the right side of this GitHub repository, under "Releases," download the latest version for your OS.
