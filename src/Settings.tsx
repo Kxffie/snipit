@@ -1,18 +1,35 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plug, Palette, Clipboard } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plug, Palette, Clipboard, Container, FolderOpen } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTheme } from "@/components/theme-provider";
 
+import { open } from "@tauri-apps/api/dialog"
+
 const settingsOptions = [
-  { name: "Connections", icon: <Plug className="w-4 h-4" /> },
-  { name: "Themes", icon: <Palette className="w-4 h-4" /> },
-  { name: "Test", icon: <Clipboard className="w-4 h-4" /> },
+    { name: "Themes", icon: <Palette className="w-4 h-4" /> },
+    { name: "Connections", icon: <Plug className="w-4 h-4" /> },
+    { name: "Collections", icon: <Container className="w-4 h-4" /> },
+    { name: "Test", icon: <Clipboard className="w-4 h-4" /> },
 ];
 
 export default function Settings() {
-  const [activeSection, setActiveSection] = useState("Connections");
+  const [activeSection, setActiveSection] = useState("Themes");
   const { theme, setTheme } = useTheme();
+
+  const [collectionPath, setCollectionPath] = useState<string | null>(null);
+
+  const selectCollectionPath = async () => {
+    const selected = await open({
+      directory: true,
+      multiple: false,
+    });
+
+    if (selected && typeof selected === "string") {
+      setCollectionPath(selected);
+    }
+  };
 
   return (
     <div className="flex h-full">
@@ -34,14 +51,7 @@ export default function Settings() {
       </aside>
 
       <main className="flex-1 p-6">
-        {activeSection === "Connections" && (
-          <div>
-            <h1 className="text-2xl font-bold">Connections</h1>
-            <p>Manage API integrations, database connections, and more.</p>
-          </div>
-        )}
-
-        {activeSection === "Themes" && (
+      {activeSection === "Themes" && (
         <div>
             <h1 className="text-2xl font-bold">Themes</h1>
             <p className="mb-4">Customize your theme and appearance settings.</p>
@@ -57,6 +67,40 @@ export default function Settings() {
             </SelectContent>
             </Select>
         </div>
+        )}
+
+        {activeSection === "Connections" && (
+          <div>
+            <h1 className="text-2xl font-bold">Connections</h1>
+            <p>Manage API integrations, database connections, and more.</p>
+          </div>
+        )}
+
+        {activeSection === "Collections" && (
+          <div>
+            <h1 className="text-2xl font-bold">Collections</h1>
+            <p className="mb-4">Select a folder to store your collections.</p>
+
+            <div className="relative w-96">
+
+            <Button 
+                variant="outline"
+                className="absolute left-0 h-full px-3 w-26 rounded-r-none" 
+                onClick={selectCollectionPath}
+            >
+                <FolderOpen className="w-4 h-4 mr-1" /> Choose
+            </Button>
+
+            <Input 
+            type="text" 
+            className="pl-24 pl-28"
+            placeholder="No folder selected"
+            value={collectionPath || ""}
+            readOnly 
+            />
+
+            </div>
+          </div>
         )}
         
         {activeSection === "Test" && (
