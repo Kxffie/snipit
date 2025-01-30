@@ -19,7 +19,7 @@ export const App = () => {
         <Navbar />
 
         {/* Sidebar + Main Content */}
-        <div className="flex flex-1 h-full">
+        <div className="flex h-screen overflow-hidden">
           {/* Sidebar - Pass state updater */}
           <Sidebar setActivePage={setActivePage} />
 

@@ -16,14 +16,18 @@
         "all": false,
         "open": true
       },
+      "path": {
+        "all": true
+      },
       "dialog": {
         "all": false,
         "open": true
       },
       "fs": {
-        "all": false,
+        "all": true,
         "readFile": true,
-        "writeFile": true
+        "writeFile": true,
+        "scope": ["**"]
       },
       "window": {
         "all": false,
@@ -34,7 +38,8 @@
         "minimize": true,
         "unmaximize": true,
         "unminimize": true,
-        "startDragging": true
+        "startDragging": true,
+        "center": true
       }
     },
     "windows": [
