@@ -7,27 +7,25 @@ import Sidebar from "./components/ui/sidebar";
 import Settings from "./Settings";
 import { Home } from "./Home";
 import { SnipItsView } from "./SnipItsView";
+import { NewSnippet } from "./NewSnippet";
 
 
 export const App = () => {
-  const [activePage, setActivePage] = useState<"home" | "snipits" | "settings">("home");
+  const [activePage, setActivePage] = useState<"home" | "snipits" | "settings" | "newsnippet">("home");
 
   return (
     <ThemeProvider>
       <div className="flex flex-col h-screen overflow-hidden">
-        {/* Navbar at the top */}
         <Navbar />
 
-        {/* Sidebar + Main Content */}
         <div className="flex h-screen overflow-hidden">
-          {/* Sidebar - Pass state updater */}
           <Sidebar setActivePage={setActivePage} />
 
-          {/* Main Content - Render Active Page */}
           <div className="flex-1 p-4 overflow-hidden">
             {activePage === "home" && <Home />}
-            {activePage === "snipits" && <SnipItsView />}
+            {activePage === "snipits" && <SnipItsView setActivePage={setActivePage} />}
             {activePage === "settings" && <Settings />}
+            {activePage === "newsnippet" && <NewSnippet />}
           </div>
         </div>
       </div>
