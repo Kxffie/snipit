@@ -11,9 +11,10 @@ edition = "2021"
 tauri-build = { version = "1", features = [] }
 
 [dependencies]
-tauri = { version = "1", features = [ "window-center", "fs-all", "path-all", "window-unmaximize", "window-start-dragging", "window-unminimize", "window-hide", "window-minimize", "window-maximize", "window-show", "window-close", "dialog-open", "shell-open"] }
+tauri = { version = "1", features = [ "os-all", "window-center", "fs-all", "path-all", "window-unmaximize", "window-start-dragging", "window-unminimize", "window-hide", "window-minimize", "window-maximize", "window-show", "window-close", "dialog-open", "shell-open"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+open = "5.0"
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!

@@ -3,31 +3,55 @@ import * as DevIcons from "react-icons/di";
 import { languageIconMap } from "@/lib/languageIconMap";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Copy, FileText, X, Search, Pencil, Trash } from "lucide-react";
+import { Copy, FileText, X, Search, Pencil, Trash, Sparkles, Folders, Star } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { loadSnippets, deleteSnippet, addSnippet, updateSnippet } from "@/db/db";
-
+import { fs } from "@tauri-apps/api";
+import { loadSettings } from "@/db/db";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { EditSnippet } from "./EditSnippet";
 
 export const SnipItsView = ({ setActivePage }: { setActivePage: (page: string) => void }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<string[]>([]);
   const [snippets, setSnippets] = useState<any[]>([]);
   const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
+  const [collectionPath, setCollectionPath] = useState<string>("");
+  const [editingSnippetId, setEditingSnippetId] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchSnippets = async () => {
-      const loadedSnippets = await loadSnippets();
+    const initialize = async () => {
+      const settings = await loadSettings();
+      setCollectionPath(settings.collectionPath);
+      await fetchSnippets(settings.collectionPath);
+    };
+
+    initialize();
+  }, []);
+
+  const fetchSnippets = async (path: string) => {
+    try {
+      const files = await fs.readDir(path);
+      const loadedSnippets = [];
+
+      for (const file of files) {
+        if (file.name?.endsWith(".json")) {
+          const content = await fs.readTextFile(`${path}/${file.name}`);
+          loadedSnippets.push(JSON.parse(content));
+        }
+      }
+
       setSnippets(loadedSnippets);
-  
+
       const languages = Array.from(new Set(loadedSnippets.map((s) => s.language)));
       setAvailableLanguages(languages);
-    };
-    fetchSnippets();
-  }, []);
+    } catch (error) {
+      console.error("Failed to load snippets:", error);
+      toast.error("Failed to load snippets.");
+    }
+  };
 
   const addFilter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -56,40 +80,83 @@ export const SnipItsView = ({ setActivePage }: { setActivePage: (page: string) =
     }
   };
 
+  const toggleStar = async (snippet: any) => {
+    snippet.starred = !snippet.starred; // Toggle the star status
+    try {
+      await fs.writeTextFile(`${collectionPath}/${snippet.id}.json`, JSON.stringify(snippet, null, 2));
+      await fetchSnippets(collectionPath); // Refresh snippets
+      toast.success(snippet.starred ? "Snippet starred." : "Snippet unstarred.");
+    } catch (error) {
+      console.error("Failed to update snippet:", error);
+      toast.error("Failed to update snippet.");
+    }
+  };
+  
+
   const filteredSnippets = snippets.filter((snippet) => {
-    const searchTerms = [...filters, searchQuery.trim().toLowerCase()].filter(Boolean);
-
-    if (searchTerms.length === 0) return true;
-
-    return searchTerms.some((term) => {
-      if (term === "uncategorized") {
-        return snippet.tags.length === 0;
-      }
-
-      return [snippet.title, snippet.description, snippet.language, snippet.date, ...snippet.tags]
-        .join(" ")
-        .toLowerCase()
-        .includes(term);
-    });
+    const searchTerm = searchQuery.trim().toLowerCase();
+    const isStarredFilterActive = filters.includes("starred");
+  
+    if (isStarredFilterActive && snippet.starred !== true) {
+      return false;
+    }
+  
+    if (!searchTerm && filters.length === 0) return true;
+  
+    const matchesSearch = [snippet.title, snippet.description, snippet.language, snippet.date, ...snippet.tags]
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTerm);
+  
+    const activeFilters = filters.filter((filter) => filter !== "starred");
+    const matchesFilters = activeFilters.length === 0 || activeFilters.some((filter) =>
+      snippet.tags.includes(filter) || snippet.language.toLowerCase() === filter
+    );
+  
+    return matchesSearch && matchesFilters;
   });
+  
+  
 
-  const handleDelete = async (id: number) => {
-    await deleteSnippet(id);
-    setSnippets(await loadSnippets());
-    toast.success("Snippet deleted.");
+  const handleDelete = async (id: string) => {
+    try {
+      await fs.removeFile(`${collectionPath}/${id}.json`);
+      await fetchSnippets(collectionPath);
+      toast.success("Snippet deleted.");
+    } catch (error) {
+      console.error("Failed to delete snippet:", error);
+      toast.error("Failed to delete snippet.");
+    }
   };
 
   const handleEdit = async (snippet: any) => {
-    await updateSnippet(snippet);
-    setSnippets(await loadSnippets());
-    toast.success("Snippet updated.");
+    try {
+      await fs.writeTextFile(`${collectionPath}/${snippet.id}.json`, JSON.stringify(snippet, null, 2));
+      await fetchSnippets(collectionPath);
+      toast.success("Snippet updated.");
+    } catch (error) {
+      console.error("Failed to update snippet:", error);
+      toast.error("Failed to update snippet.");
+    }
   };
 
-  const handleAddSnippet = async (newSnippet: any) => {
-    await addSnippet(newSnippet);
-    setSnippets(await loadSnippets());
-    toast.success("Snippet added.");
+
+  const handleEditClick = (id: string) => {
+    setEditingSnippetId(id); // Set the snippet to be edited
   };
+
+  const handleSave = async () => {
+    await fetchSnippets(collectionPath); // Refresh snippets after saving
+    setEditingSnippetId(null); // Exit edit mode
+  };
+
+  const handleCancel = () => {
+    setEditingSnippetId(null); // Exit edit mode without saving
+  };
+
+  if (editingSnippetId) {
+    return <EditSnippet snippetId={editingSnippetId} onCancel={handleCancel} onSave={handleSave} />;
+  }
 
   return (
     <div className="h-full flex">
@@ -101,17 +168,17 @@ export const SnipItsView = ({ setActivePage }: { setActivePage: (page: string) =
             className="w-full justify-start"
             onClick={() => setFilters([])}
           >
-            <FileText className="w-4 h-4" />
+            <Folders className="w-4 h-4" />
             <span className="ml-2">All</span>
           </Button>
 
           <Button
-            variant={filters.includes("uncategorized") ? "secondary" : "ghost"}
+            variant={filters.includes("starred") ? "secondary" : "ghost"}
             className="w-full justify-start"
-            onClick={() => toggleFilter("uncategorized")}
+            onClick={() => toggleFilter("starred")}
           >
-            <FileText className="w-4 h-4" />
-            <span className="ml-2">Uncategorized</span>
+            <Sparkles className="w-4 h-4" />
+            <span className="ml-2">Starred</span>
           </Button>
         </div>
 
@@ -151,7 +218,8 @@ export const SnipItsView = ({ setActivePage }: { setActivePage: (page: string) =
           </div>
 
           <Button
-            className="px-6 py-2 rounded-md bg-secondary text-secondary-foreground"
+            className="px-6 py-2 rounded-md"
+            variant="ghost"
             onClick={() => setActivePage("newsnippet")}
           >
             + New Snippet
@@ -169,50 +237,48 @@ export const SnipItsView = ({ setActivePage }: { setActivePage: (page: string) =
           </div>
         )}
 
-        <div className={`flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-hidden`}>
-          {filteredSnippets.length === 0 ? (
-            <p className="text-muted-foreground">No snippets found.</p>
-          ) : (
-            filteredSnippets.map((snippet) => (
-              <Card key={snippet.id} className="relative border bg-muted">
-                <CardHeader className="relative">
-                  <CardTitle>{snippet.title}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{snippet.description}</p>
+        <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hidden">
+          {filteredSnippets.map((snippet) => (
+            <Card key={snippet.id} className="border bg-muted p-3 rounded-md shadow-sm">
+              <div className="flex justify-between items-center mb-2">
+                <div>
+                  <CardTitle className="text-xl font-semibold">{snippet.title}</CardTitle>
+                  <p className="text-sm text-muted-foreground truncate">{snippet.description}</p>
+                </div>
+                <div className="flex space-x-2">
+                  <Button size="icon" variant="ghost" onClick={() => toggleStar(snippet)}>
+                    <Star className={`w-4 h-4 ${snippet.starred ? "text-yellow-400" : "text-muted-foreground"}`} />
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={() => handleEditClick(snippet.id)}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={() => copyToClipboard(snippet.code)}>
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={() => handleDelete(snippet.id)}>
+                    <Trash className="w-4 h-4 text-red-500" />
+                  </Button>
+                </div>
+              </div>
 
-                  {snippet.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {snippet.tags.map((tag, index) => (
-                        <Badge key={index} className="bg-background text-foreground">{tag}</Badge>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="absolute top-2 right-2 flex space-x-2 z-10">
-                    <Button size="icon" variant="ghost" onClick={() => copyToClipboard(snippet.code)}>
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" onClick={() => handleEdit(snippet)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" onClick={() => handleDelete(snippet.id)}>
-                      <Trash className="w-4 h-4 text-red-500" />
-                    </Button>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="relative bg-background p-4 rounded-md border">
-                  <SyntaxHighlighter
-                    language={snippet.language.toLowerCase()}
-                    style={tomorrow}
-                    showLineNumbers={true}
-                    customStyle={{ backgroundColor: "inherit", padding: "1rem", borderRadius: "0.375rem" }}
-                  >
-                    {snippet.code}
-                  </SyntaxHighlighter>
-                </CardContent>
-              </Card>
-            ))
-          )}
+              <CardContent className="bg-background p-3 rounded-md border">
+                <SyntaxHighlighter
+                  language={snippet.language.toLowerCase()}
+                  style={tomorrow}
+                  showLineNumbers
+                  customStyle={{
+                    backgroundColor: "inherit",
+                    padding: "0.75rem",
+                    borderRadius: "0.375rem",
+                    fontSize: "0.9rem",
+                    lineHeight: "1.4",
+                  }}
+                >
+                  {snippet.code}
+                </SyntaxHighlighter>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </main>
     </div>
