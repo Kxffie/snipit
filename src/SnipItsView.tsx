@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
-import * as DevIcons from "react-icons/di";
-import { languageIconMap } from "@/lib/languageIconMap";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Copy, FileText, X, Search, Pencil, Trash, Sparkles, Folders, Star } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -13,7 +11,8 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { EditSnippet } from "./EditSnippet";
 
-export const SnipItsView = ({ setActivePage }: { setActivePage: (page: string) => void }) => {
+type Page = "home" | "snipits" | "settings" | "newsnippet";
+export const SnipItsView = ({ setActivePage }: { setActivePage: React.Dispatch<React.SetStateAction<Page>> }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<string[]>([]);
   const [snippets, setSnippets] = useState<any[]>([]);
@@ -81,10 +80,10 @@ export const SnipItsView = ({ setActivePage }: { setActivePage: (page: string) =
   };
 
   const toggleStar = async (snippet: any) => {
-    snippet.starred = !snippet.starred; // Toggle the star status
+    snippet.starred = !snippet.starred;
     try {
       await fs.writeTextFile(`${collectionPath}/${snippet.id}.json`, JSON.stringify(snippet, null, 2));
-      await fetchSnippets(collectionPath); // Refresh snippets
+      await fetchSnippets(collectionPath);
       toast.success(snippet.starred ? "Snippet starred." : "Snippet unstarred.");
     } catch (error) {
       console.error("Failed to update snippet:", error);
@@ -115,8 +114,6 @@ export const SnipItsView = ({ setActivePage }: { setActivePage: (page: string) =
   
     return matchesSearch && matchesFilters;
   });
-  
-  
 
   const handleDelete = async (id: string) => {
     try {
@@ -129,29 +126,18 @@ export const SnipItsView = ({ setActivePage }: { setActivePage: (page: string) =
     }
   };
 
-  const handleEdit = async (snippet: any) => {
-    try {
-      await fs.writeTextFile(`${collectionPath}/${snippet.id}.json`, JSON.stringify(snippet, null, 2));
-      await fetchSnippets(collectionPath);
-      toast.success("Snippet updated.");
-    } catch (error) {
-      console.error("Failed to update snippet:", error);
-      toast.error("Failed to update snippet.");
-    }
-  };
-
 
   const handleEditClick = (id: string) => {
-    setEditingSnippetId(id); // Set the snippet to be edited
+    setEditingSnippetId(id);
   };
 
   const handleSave = async () => {
-    await fetchSnippets(collectionPath); // Refresh snippets after saving
-    setEditingSnippetId(null); // Exit edit mode
+    await fetchSnippets(collectionPath);
+    setEditingSnippetId(null);
   };
 
   const handleCancel = () => {
-    setEditingSnippetId(null); // Exit edit mode without saving
+    setEditingSnippetId(null);
   };
 
   if (editingSnippetId) {
@@ -186,7 +172,7 @@ export const SnipItsView = ({ setActivePage }: { setActivePage: (page: string) =
         <div className="space-y-2">
           {availableLanguages.map((language) => {
             const normalizedLanguage = language.toLowerCase();
-            const IconComponent = DevIcons[languageIconMap[normalizedLanguage]] || FileText;
+            const IconComponent = FileText;
 
             return (
               <Button

@@ -32,7 +32,6 @@ export default function Settings() {
       }
     });
 
-    // Fetch the App Directory
     tauriPath.appDataDir().then((dir) => {
       setAppDirectory(dir);
     });
@@ -40,7 +39,7 @@ export default function Settings() {
 
   const handleFolderOpen = async (path: string) => {
     try {
-      await invoke("open_folder", { path });  // Calling the Rust command
+      await invoke("open_folder", { path });
     } catch (error) {
       console.error("Failed to open folder:", error);
     }
@@ -50,8 +49,12 @@ export default function Settings() {
   const handleChangeCollectionPath = async () => {
     try {
       const selected = await dialog.open({ directory: true });
-      if (selected && typeof selected === "string") {
-        const updatedSettings = { ...settings, collectionPath: selected };
+      if (selected && typeof selected === "string" && settings) {
+        const updatedSettings = {
+          os: settings.os || "Unknown OS",
+          firstStartup: settings.firstStartup || new Date().toISOString(),
+          collectionPath: selected,
+        };
         await saveSettings(updatedSettings);
         setSettings(updatedSettings);
         setCollectionPath(selected);
@@ -60,6 +63,7 @@ export default function Settings() {
       console.error("Failed to change collection path:", error);
     }
   };
+  
 
   const renderSection = () => {
     switch (activeSection) {

@@ -4,6 +4,7 @@ import { join, appDataDir  } from "@tauri-apps/api/path";
 const SETTINGS_FILE = "settings.json";
 const SNIPPET_FILE = `snippets/snippets.json`;
 
+
 async function getSettingsFilePath() {
     const appDir = await appDataDir();
     const settingsPath = await join(appDir, SETTINGS_FILE);
@@ -17,10 +18,9 @@ async function getSettingsFilePath() {
   }
 
 async function getDbFilePath() {
-    const appDir = await appDataDir(); // Get the system AppData path
+    const appDir = await appDataDir();
     const dbPath = await join(appDir, SNIPPET_FILE);
   
-    // ✅ Ensure directory exists before writing
     const dirExists = await exists(appDir);
     if (!dirExists) {
       console.log(`Creating AppData directory: ${appDir}`);
@@ -28,15 +28,6 @@ async function getDbFilePath() {
     }
   
     return dbPath;
-  }
-
-// ✅ Ensure `src/db/` directory exists
-async function ensureDbExists() {
-    const path = await join(await appDataDir(), SNIPPET_FILE);
-    if (!(await exists(path))) {
-      await writeTextFile(path, "[]"); // Create empty JSON array
-    }
-    return path;
   }
 
   export async function loadSettings() {
@@ -50,7 +41,6 @@ async function ensureDbExists() {
     }
   }
   
-  // ✅ Save Settings
   export async function saveSettings(settings: any) {
     try {
       const path = await getSettingsFilePath();
@@ -61,7 +51,6 @@ async function ensureDbExists() {
     }
   }
 
-// ✅ Load Snippets from JSON File
 export async function loadSnippets() {
     try {
       const path = await getDbFilePath();
@@ -69,7 +58,7 @@ export async function loadSnippets() {
   
       if (!(await exists(path))) {
         console.log("No snippets file found, creating an empty one...");
-        await writeTextFile(path, "[]"); // Create an empty JSON array
+        await writeTextFile(path, "[]");
         return [];
       }
   
@@ -82,7 +71,6 @@ export async function loadSnippets() {
     }
   }
 
-// ✅ Save Snippets to JSON File
 export async function saveSnippets(snippets: any[]) {
     try {
       const path = await getDbFilePath();
@@ -93,28 +81,3 @@ export async function saveSnippets(snippets: any[]) {
       console.error("❌ Error saving snippets:", error);
     }
   }
-
-// ✅ Delete a Snippet
-export async function deleteSnippet(id: number) {
-  const snippets = await loadSnippets();
-  const updatedSnippets = snippets.filter((s) => s.id !== id);
-  await saveSnippets(updatedSnippets);
-}
-
-// ✅ Update (Edit) a Snippet
-export async function updateSnippet(updatedSnippet: any) {
-  const snippets = await loadSnippets();
-  const index = snippets.findIndex((s) => s.id === updatedSnippet.id);
-  if (index !== -1) {
-    snippets[index] = updatedSnippet;
-    await saveSnippets(snippets);
-  }
-}
-
-// ✅ Add a New Snippet
-export async function addSnippet(newSnippet: any) {
-  const snippets = await loadSnippets();
-  newSnippet.id = snippets.length ? Math.max(...snippets.map((s) => s.id)) + 1 : 1;
-  snippets.push(newSnippet);
-  await saveSnippets(snippets);
-}

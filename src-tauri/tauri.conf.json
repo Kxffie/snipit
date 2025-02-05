@@ -3,11 +3,12 @@
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
     "devPath": "http://localhost:1420",
-    "distDir": "../dist"
+    "distDir": "../dist",
+    "withGlobalTauri": true
   },
   "package": {
     "productName": "SnipIt",
-    "version": "0.0.0"
+    "version": "1.0.0"
   },
   "tauri": {
     "allowlist": {

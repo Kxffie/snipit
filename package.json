@@ -42,6 +42,7 @@
     "@types/node": "^20.11.30",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
