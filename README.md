@@ -1,109 +1,162 @@
-# SnipIt - Code Snippet Manager
+# SnipIt - Code Snippet Manager  
 
-SnipIt is a **code snippet manager** designed to help developers store, search, and retrieve reusable code effortlessly. No more digging through old projects—just **save, search, and copy**.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/4fbeb719-3a74-43e0-844d-ca4637a10c47" width="750" alt="SnipIt Logo">
+</p>
 
-![image](https://github.com/user-attachments/assets/c7f41e80-f90d-4071-8840-bbb6db68aa2a)
+<p align="center">
+  <b>SnipIt</b> is a lightweight yet powerful <br> <b>code snippet manager</b> for developers. <br>
+  Save, organize, and retrieve your code effortlessly. <br>
+  No more digging through old projects—just <b>save, search, and copy</b>.
+</p>
 
----
+<p align="center">
+  <a href="https://github.com/kxffie/snipit/releases/latest">
+    <img src="https://img.shields.io/github/v/release/kxffie/snipit?label=Latest%20Release&style=for-the-badge&color=blue">
+  </a>
+</p>
 
-## 🚀 Features
-
-- **Offline-first**: Works locally for instant access.
-- **Tagging System**: Organize snippets by language, project type, and custom tags.
-- **GitHub Backup**: Sync snippets to a public or private GitHub repository. (Planned)
-- **Fast Search**: Quickly find stored snippets with keyword and tag filtering.
-
----
-
-## 📦 Installation
-
-### Download SnipIt
-You can install SnipIt in three ways:
-
-1. **Website Download:**
-   - Visit [SnipIt Official Website](https://google.com) and download the latest version. (Coming Soon)
-
-2. **GitHub Releases:**
-   - On the right side of this GitHub repository, under "Releases," download the latest version for your OS.
-
-3. **Manual Installation (For Developers):**
-   - **Clone the repository:**
-     ```sh
-     git clone https://github.com/yourusername/snipit.git
-     cd snipit
-     ```
-   - **Install dependencies:**
-     ```sh
-     # Using npm
-     npm install
-     
-     # OR using yarn
-     yarn install
-     ```
-   - **Run in development mode:**
-     ```sh
-     # Using npm
-     npm run tauri dev
-     
-     # OR using yarn
-     yarn tauri dev
-     ```
-   - **Build the application:**
-     ```sh
-     # Using npm
-     npm run tauri build
-     
-     # OR using yarn
-     yarn tauri build
-     ```
+<p align="center">
+  <a href="https://github.com/kxffie/snipit/releases/latest">
+    <img src="https://img.shields.io/badge/⬇️ Download-Release-blue?style=for-the-badge">
+  </a>
+  <a href="https://discord.gg/srPwBXVF">
+    <img src="https://img.shields.io/discord/1336527502105120769?label=Join%20Discord&logo=discord&logoColor=white&color=5865F2&style=for-the-badge">
+  </a>
+</p>
 
 ---
 
-## 📖 Usage
+<h2>🚀 Features</h2>
 
-1. **Add a snippet**: Paste your reusable code and tag it for easy retrieval.
-2. **Search**: Use keywords or filters to find saved snippets.
-3. **Copy & Use**: Click to copy and insert it into your project as fast as your hands can go.
-
----
-
-## 🤝 Contributing
-
-I welcome contributions! To contribute:
-
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature-name`).
-3. Make your changes and commit (`git commit -m 'Added feature'`).
-4. Push to your fork (`git push origin feature-name`).
-5. Open a pull request.
+<ul>
+  <li>✅ <strong>Offline-first</strong> – Works locally for instant access.</li>
+  <li>🏷️ <strong>Tagging System</strong> – Organize snippets by language, project type, and custom tags.</li>
+  <li>☁️ <strong>GitHub Backup</strong> – Sync snippets to a public or private GitHub repository. <em>(Planned)</em></li>
+  <li>🔍 <strong>Fast Search</strong> – Quickly find stored snippets with keyword and tag filtering.</li>
+</ul>
 
 ---
 
-## 🛠 Tech Stack
+<h2>📦 Installation</h2>
 
-- **Frontend**: Vite + React + Typescript
-- **Backend**: Tauri (Rust)
-- **UI Components**: ShadCN, Lucide Icons
+<h3>🔽 Download SnipIt</h3>
+
+<ul>
+  <li><strong>Website Download</strong> (<em>Coming Soon!</em>)  
+    <br>Visit <a href="https://google.com">SnipIt Official Website</a> and download the latest version.</li>
+  <li><strong>GitHub Releases</strong>  
+    <br>Go to the <a href="https://github.com/kxffie/snipit/releases">Releases</a> section and download the latest version for your OS.</li>
+</ul>
+
+<h3>🛠️ Manual Installation (For Developers)</h3>
+
+<ol>
+  <li><strong>Clone the repository:</strong></li>
+
+  <pre>
+  git clone https://github.com/kxffie/snipit.git
+  cd snipit
+  </pre>
+
+  <li><strong>Install dependencies:</strong></li>
+
+  <pre>
+  # Using npm
+  npm install
+  
+  # OR using yarn
+  yarn install
+  </pre>
+
+  <li><strong>Run in development mode:</strong></li>
+
+  <pre>
+  # Using npm
+  npm run tauri dev
+  
+  # OR using yarn
+  yarn tauri dev
+  </pre>
+
+  <li><strong>Build the application:</strong></li>
+
+  <pre>
+  # Using npm
+  npm run tauri build
+  
+  # OR using yarn
+  yarn tauri build
+  </pre>
+</ol>
 
 ---
 
-## 📜 License
+<h2>📖 Usage</h2>
 
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
-
----
-
-## 🌟 Support
-
-If you find this project helpful, please ⭐ the repo! Have feedback? Open an issue or join the discussion.
+<ul>
+  <li>📌 <strong>Add a snippet</strong> – Paste your reusable code and tag it for easy retrieval.</li>
+  <li>📌 <strong>Search</strong> – Use keywords or filters to find saved snippets.</li>
+  <li>📌 <strong>Copy & Use</strong> – Click to copy and insert it into your project instantly.</li>
+</ul>
 
 ---
 
-## 📩 Contact
+<h2>🤝 Contributing</h2>
 
-For questions or suggestions, reach out via: 
-- **Discord Server**: [SnipIt Discord](https://discord.gg/srPwBXVF)
-- **Discord**: kxffie
-- **Twitter**: [@kxffie](https://x.com/kxffie)
+<p>SnipIt is open to contributions! If you'd like to contribute:</p>
+
+<ol>
+  <li><strong>Fork</strong> the repository.</li>
+  <li><strong>Create a new branch:</strong></li>
+
+  <pre>
+  git checkout -b feature-name
+  </pre>
+
+  <li><strong>Make your changes and commit:</strong></li>
+
+  <pre>
+  git commit -m "Added feature"
+  </pre>
+
+  <li><strong>Push to your fork:</strong></li>
+
+  <pre>
+  git push origin feature-name
+  </pre>
+
+  <li><strong>Open a pull request</strong> on GitHub.</li>
+</ol>
 
 ---
+
+<h2>🛠 Tech Stack</h2>
+
+<ul>
+  <li>🖥️ <strong>Frontend</strong>: Vite + React + TypeScript</li>
+  <li>⚙️ <strong>Backend</strong>: Tauri (Rust)</li>
+  <li>🎨 <strong>UI Components</strong>: ShadCN, Lucide Icons</li>
+</ul>
+
+---
+
+<h2>📜 License</h2>
+
+<p>This project is licensed under the <strong>MIT License</strong>. See the <a href="LICENSE">LICENSE</a> file for details.</p>
+
+---
+
+<h2>🌟 Support</h2>
+
+<p>If you find this project helpful, please ⭐ the repo! Have feedback? Open an issue or join the discussion.</p>
+
+---
+
+<h2>📩 Contact</h2>
+
+<ul>
+  <li>💬 <strong>Discord Server</strong>: <a href="https://discord.gg/srPwBXVF">SnipIt Discord</a></li>
+  <li>📩 <strong>Discord</strong>: kxffie</li>
+  <li>🐦 <strong>Twitter</strong>: <a href="https://x.com/kxffie">@kxffie</a></li>
+</ul>
