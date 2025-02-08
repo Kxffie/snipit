@@ -46,7 +46,7 @@
   <li><strong>Website Download</strong> (<em>Coming Soon!</em>)  
     <br>Visit <a href="https://google.com">SnipIt Official Website</a> and download the latest version.</li>
   <li><strong>GitHub Releases</strong>  
-    <br>Go to the <a href="https://github.com/yourusername/snipit/releases">Releases</a> section and download the latest version for your OS.</li>
+    <br>Go to the <a href="https://github.com/kxffie/snipit/releases">Releases</a> section and download the latest version for your OS.</li>
 </ul>
 
 <h3>🛠️ Manual Installation (For Developers)</h3>
