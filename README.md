@@ -2,7 +2,7 @@
 
 SnipIt is a **code snippet manager** designed to help developers store, search, and retrieve reusable code effortlessly. No more digging through old projects—just **save, search, and copy**.
 
-![image](https://github.com/user-attachments/assets/c7f41e80-f90d-4071-8840-bbb6db68aa2a)
+![image](https://github.com/user-attachments/assets/4fbeb719-3a74-43e0-844d-ca4637a10c47)
 
 ---
 
