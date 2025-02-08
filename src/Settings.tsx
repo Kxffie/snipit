@@ -63,7 +63,6 @@ export default function Settings() {
       console.error("Failed to change collection path:", error);
     }
   };
-  
 
   const renderSection = () => {
     switch (activeSection) {
