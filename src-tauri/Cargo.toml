@@ -1,6 +1,6 @@
 [package]
 name = "snipit"
-version = "0.0.0"
+version = "1.0.1"
 description = "A Code Snippet Manager"
 authors = ["kxffie"]
 edition = "2021"
