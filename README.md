@@ -2,13 +2,15 @@
 
 SnipIt is a **code snippet manager** designed to help developers store, search, and retrieve reusable code effortlessly. No more digging through old projects—just **save, search, and copy**.
 
+![image](https://github.com/user-attachments/assets/c7f41e80-f90d-4071-8840-bbb6db68aa2a)
+
 ---
 
 ## 🚀 Features
 
 - **Offline-first**: Works locally for instant access.
 - **Tagging System**: Organize snippets by language, project type, and custom tags.
-- **GitHub Backup**: Sync snippets to a public or private GitHub repository.
+- **GitHub Backup**: Sync snippets to a public or private GitHub repository. (Planned)
 - **Fast Search**: Quickly find stored snippets with keyword and tag filtering.
 
 ---
@@ -61,7 +63,7 @@ You can install SnipIt in three ways:
 
 1. **Add a snippet**: Paste your reusable code and tag it for easy retrieval.
 2. **Search**: Use keywords or filters to find saved snippets.
-3. **Copy & Use**: Click to copy and insert it into your project instantly.
+3. **Copy & Use**: Click to copy and insert it into your project as fast as your hands can go.
 
 ---
 
@@ -79,9 +81,9 @@ I welcome contributions! To contribute:
 
 ## 🛠 Tech Stack
 
-- **Frontend**: React + Vite + TypeScript
+- **Frontend**: Vite + React + Typescript
 - **Backend**: Tauri (Rust)
-- **UI Components**: ShadCN
+- **UI Components**: ShadCN, Lucide Icons
 
 ---
 
@@ -100,6 +102,7 @@ If you find this project helpful, please ⭐ the repo! Have feedback? Open an is
 ## 📩 Contact
 
 For questions or suggestions, reach out via: 
+- **Discord Server**: [SnipIt Discord](https://discord.gg/srPwBXVF)
 - **Discord**: kxffie
 - **Twitter**: [@kxffie](https://x.com/kxffie)
 
