@@ -1,4 +1,4 @@
-# 🚀 SnipIt - Code Snippet Manager  
+# SnipIt - Code Snippet Manager  
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/4fbeb719-3a74-43e0-844d-ca4637a10c47" width="750" alt="SnipIt Logo">
