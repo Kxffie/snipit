@@ -4,10 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/prism";
+import MonacoEditor from "@monaco-editor/react";
 import langDetector from "lang-detector";
 import { fs } from "@tauri-apps/api";
 import { loadSettings } from "@/db/db";
@@ -37,8 +35,10 @@ export const NewSnippet = () => {
 
       typingTimeoutRef.current = setTimeout(() => {
         const detectedLanguage = langDetector(code);
-        if (!language) setLanguage(detectedLanguage || "");
-      }, 1000);
+        if (detectedLanguage && detectedLanguage !== language) {
+          setLanguage(detectedLanguage);
+        }
+      }, 4000);
     }
 
     return () => {
@@ -86,7 +86,9 @@ export const NewSnippet = () => {
 
     try {
       const id = await generateUniqueId();
-      const newSnippet = { id, title, description, code, language, tags, starred: false, date: new Date().toISOString() };
+      const finalTags = tags.length > 0 ? tags : ["unlabeled"];
+
+      const newSnippet = { id, title, description, code, language, tags: finalTags, starred: false, date: new Date().toISOString() };
 
       const filePath = `${collectionPath}/${id}.json`;
       await fs.writeTextFile(filePath, JSON.stringify(newSnippet, null, 2));
@@ -105,7 +107,7 @@ export const NewSnippet = () => {
 
   return (
     <ThemeProvider>
-      <div className="h-full max-w-2xl mx-auto p-6 space-y-4 bg-muted rounded-md shadow-md">
+      <div className="h-full max-w-2xl mx-auto p-6 space-y-4">
         <h1 className="text-2xl font-bold text-center">New Snippet</h1>
 
         <Input
@@ -115,18 +117,26 @@ export const NewSnippet = () => {
           className="w-full"
         />
 
-        <Textarea
+        <Input
           placeholder="Description (optional)"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="w-full"
         />
 
-        <Textarea
-          placeholder="Paste your code here..."
+        <MonacoEditor
+          height="400px"
+          language={language || "plaintext"}
+          theme="vs-dark"
           value={code}
-          onChange={(e) => setCode(e.target.value)}
-          className="h-40 w-full"
+          onChange={(value) => setCode(value || "")}
+          options={{
+            fontSize: 14,
+            minimap: { enabled: false },
+            wordWrap: "on",
+            automaticLayout: true,
+            scrollBeyondLastLine: false,
+          }}
         />
 
         <div className="flex items-center gap-2">
@@ -138,14 +148,6 @@ export const NewSnippet = () => {
           />
           <span className="text-sm text-muted-foreground">(Editable)</span>
         </div>
-
-        {code && (
-          <div className="border rounded-md p-3 bg-background">
-            <SyntaxHighlighter language={language} style={tomorrow} showLineNumbers>
-              {code}
-            </SyntaxHighlighter>
-          </div>
-        )}
 
         <div className="flex items-center flex-wrap gap-2 border rounded-md px-2 py-1 bg-background focus-within:ring-2 ring-ring">
           {tags.map((tag, index) => (

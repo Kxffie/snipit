@@ -12,6 +12,7 @@ import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { EditSnippet } from "./EditSnippet";
 
 type Page = "home" | "snipits" | "settings" | "newsnippet";
+
 export const SnipItsView = ({ setActivePage }: { setActivePage: React.Dispatch<React.SetStateAction<Page>> }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<string[]>([]);

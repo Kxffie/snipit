@@ -4,10 +4,8 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/prism";
+import MonacoEditor from "@monaco-editor/react";
 import { fs } from "@tauri-apps/api";
 import { loadSettings } from "@/db/db";
 
@@ -84,7 +82,7 @@ export const EditSnippet = ({ snippetId, onCancel, onSave }: { snippetId: string
 
   return (
     <ThemeProvider>
-      <div className="h-full max-w-2xl mx-auto p-6 space-y-4 bg-muted rounded-md shadow-md">
+      <div className="h-full max-w-2xl mx-auto p-6 space-y-4">
         <h1 className="text-2xl font-bold text-center">Edit Snippet</h1>
 
         <Input
@@ -94,34 +92,27 @@ export const EditSnippet = ({ snippetId, onCancel, onSave }: { snippetId: string
           className="w-full"
         />
 
-        <Textarea
-          placeholder="Description (optional)"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="w-full"
-        />
-
-        <Textarea
-          placeholder="Edit your code here..."
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          className="h-40 w-full"
-        />
-
         <Input
-          placeholder="Language"
+          placeholder="Language (e.g., javascript, python)"
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
           className="w-full"
         />
 
-        {code && (
-          <div className="border rounded-md p-3 bg-background">
-            <SyntaxHighlighter language={language} style={tomorrow} showLineNumbers>
-              {code}
-            </SyntaxHighlighter>
-          </div>
-        )}
+        <MonacoEditor
+          height="400px"
+          language={language || "plaintext"}
+          theme="vs-dark"
+          value={code}
+          onChange={(value) => setCode(value || "")}
+          options={{
+            fontSize: 14,
+            minimap: { enabled: false },
+            wordWrap: "on",
+            automaticLayout: true,
+            scrollBeyondLastLine: false,
+          }}
+        />
 
         <div className="flex items-center flex-wrap gap-2 border rounded-md px-2 py-1 bg-background focus-within:ring-2 ring-ring">
           {tags.map((tag, index) => (
