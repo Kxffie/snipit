@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { Copy, FileText, X, Search, Pencil, Trash, Sparkles, Folders, Star } from "lucide-react";
+import { Copy, FileText, X, Search, Pencil, Trash, Sparkles, Folders, Star, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -166,6 +166,15 @@ export const SnipItsView = ({ setActivePage }: { setActivePage: React.Dispatch<R
             <Sparkles className="w-4 h-4" />
             <span className="ml-2">Starred</span>
           </Button>
+
+          <Button
+            variant={filters.includes("unlabeled") ? "secondary" : "ghost"}
+            className="w-full justify-start"
+            onClick={() => toggleFilter("unlabeled")}
+          >
+            <Tag className="w-4 h-4" />
+            <span className="ml-2">Unlabeled</span>
+          </Button>
         </div>
 
         <h3 className="text-md font-semibold mb-2 text-muted-foreground">Tags</h3>
@@ -189,7 +198,7 @@ export const SnipItsView = ({ setActivePage }: { setActivePage: React.Dispatch<R
         </div>
       </aside>
 
-      <main className="flex-1 p-6 overflow-hidden flex flex-col">
+      <main className="flex-1 p-6 overflow-hidden flex flex-col rounded-tl-lg">
         <div className="flex items-center space-x-2 mb-4">
           <div className="relative w-full">
             <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
@@ -226,8 +235,8 @@ export const SnipItsView = ({ setActivePage }: { setActivePage: React.Dispatch<R
         <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hidden">
           {filteredSnippets.map((snippet) => (
             <Card key={snippet.id} className="border bg-muted p-3 rounded-md shadow-sm">
-              <div className="flex justify-between items-center mb-2">
-                <div>
+              <div className="flex justify-between items-center mb-2 min-w-0">
+                <div className="min-w-0">
                   <CardTitle className="text-xl font-semibold">{snippet.title}</CardTitle>
                   <p className="text-sm text-muted-foreground truncate">{snippet.description}</p>
                 </div>

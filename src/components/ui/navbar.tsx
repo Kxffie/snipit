@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
   return (
-    <div data-tauri-drag-region className="w-full p-2 bg-secondary flex justify-between items-center">
+    <div data-tauri-drag-region className="w-full h-8 bg-secondary flex justify-between items-center">
 
-      <h1 className="text-xl font-bold">SnipIt</h1>
+      <h1 className="text-xl pl-2 font-bold">SnipIt</h1>
 
-      <div className="flex gap-2">
+      <div className="flex">
         <Button variant="ghost" size="icon" onClick={() => appWindow.minimize()}>
           <Minus className="w-4 h-4" />
         </Button>

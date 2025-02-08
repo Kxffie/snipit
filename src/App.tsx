@@ -15,13 +15,13 @@ export const App = () => {
 
   return (
     <ThemeProvider>
-      <div className="flex flex-col h-screen overflow-hidden">
+      <div className="flex flex-col h-screen overflow-hidden ">
         <Navbar />
 
         <div className="flex h-screen overflow-hidden">
           <Sidebar setActivePage={setActivePage} />
 
-          <div className="flex-1 p-4 overflow-hidden">
+          <div className="flex-1 p-4 overflow-hidden rounded-tl-lg">
             {activePage === "home" && <Home />}
             {activePage === "snipits" && <SnipItsView setActivePage={setActivePage} />}
             {activePage === "settings" && <Settings />}
