@@ -1,8 +1,32 @@
-# SnipIt - Code Snippet Manager
+# 🚀 SnipIt - Code Snippet Manager  
 
-SnipIt is a **code snippet manager** designed to help developers store, search, and retrieve reusable code effortlessly. No more digging through old projects—just **save, search, and copy**.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/4fbeb719-3a74-43e0-844d-ca4637a10c47" width="500" alt="SnipIt Logo">
+</p>
 
-![image](https://github.com/user-attachments/assets/4fbeb719-3a74-43e0-844d-ca4637a10c47)
+<p align="center">
+  <b>SnipIt</b> is a lightweight yet powerful <br> <b>code snippet manager</b> for developers. <br>
+  Save, organize, and retrieve your code effortlessly. <br>
+  No more digging through old projects—just <b>save, search, and copy</b>.
+</p>
+
+<p align="center">
+  <a href="https://github.com/kxffie/snipit/releases/latest">
+    <img src="https://img.shields.io/github/v/release/yourusername/snipit?label=Latest%20Release&style=for-the-badge&color=blue">
+  </a>
+  <a href="https://github.com/kxffie/snipit">
+    <img src="https://img.shields.io/github/package-json/v/yourusername/snipit?label=Latest%20Version&style=for-the-badge&color=yellow">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/kxffie/snipit/releases/latest">
+    <img src="https://img.shields.io/badge/⬇️ Download-Release-blue?style=for-the-badge">
+  </a>
+  <a href="https://discord.gg/srPwBXVF">
+    <img src="https://img.shields.io/discord/1336527502105120769?label=Join%20Discord&logo=discord&logoColor=white&color=5865F2&style=for-the-badge">
+  </a>
+</p>
 
 ---
 
