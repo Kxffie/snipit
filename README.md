@@ -12,10 +12,10 @@
 
 <p align="center">
   <a href="https://github.com/kxffie/snipit/releases/latest">
-    <img src="https://img.shields.io/github/v/release/yourusername/snipit?label=Latest%20Release&style=for-the-badge&color=blue">
+    <img src="https://img.shields.io/github/v/release/kxffie/snipit?label=Latest%20Release&style=for-the-badge&color=blue">
   </a>
   <a href="https://github.com/kxffie/snipit">
-    <img src="https://img.shields.io/github/package-json/v/yourusername/snipit?label=Latest%20Version&style=for-the-badge&color=yellow">
+    <img src="https://img.shields.io/github/package-json/v/kxffie/snipit?label=Latest%20Version&style=for-the-badge&color=yellow">
   </a>
 </p>
 
