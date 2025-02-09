@@ -42,6 +42,11 @@
 
 <h3>🔽 Download SnipIt</h3>
 
+> ⚠️ **Note:** 
+> - The **latest** version for the app you have to build yourself, otherwise you will have to wait for my build to download the latest version.
+> - For now, **MacOS** & **Linux** users will have to build the app themselves as Tauri **cannot** build cross-platform.
+> - ["Tauri relies heavily on native libraries and toolchains, so meaningful cross-compilation is not possible at the current moment."](https://v1.tauri.app/v1/guides/building/cross-platform/)
+
 <ul>
   <li><strong>Website Download</strong> (<em>Coming Soon!</em>)  
     <br>Visit <a href="https://google.com">SnipIt Official Website</a> and download the latest version.</li>
