@@ -150,25 +150,6 @@ export const SnipItsView = ({ setActivePage }: { setActivePage: React.Dispatch<R
     return matchesSearch && matchesFilters;
   });
 
-  const handleDelete = async (id: string) => {
-    try {
-      await fs.removeFile(`${collectionPath}/${id}.json`);
-      await fetchSnippets(collectionPath);
-      toast({
-        title: "Deleted",
-        description: "Snippet deleted.",
-      });
-    } catch (error) {
-      console.error("Failed to delete snippet:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete snippet.",
-        variant: "destructive",
-      });
-    }
-  };
-
-
   const handleEditClick = (id: string) => {
     setEditingSnippetId(id);
   };
