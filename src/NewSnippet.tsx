@@ -1,16 +1,17 @@
-import "./App.css";
-import { ThemeProvider } from "@/components/theme-provider";
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import MonacoEditor from "@monaco-editor/react";
 import langDetector from "lang-detector";
 import { fs } from "@tauri-apps/api";
 import { loadSettings } from "@/db/db";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Save, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast"; // Import ShadCN's toast
 
-export const NewSnippet = () => {
+export const NewSnippet = ({ onClose, setActivePage }: { onClose: () => void; setActivePage: (page: "home" | "snipits" | "settings" | "newsnippet") => void }) => {
+  const { toast } = useToast(); // ShadCN toast function
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [code, setCode] = useState("");
@@ -38,7 +39,7 @@ export const NewSnippet = () => {
         if (detectedLanguage && detectedLanguage !== language) {
           setLanguage(detectedLanguage);
         }
-      }, 4000);
+      }, 3000);
     }
 
     return () => {
@@ -46,46 +47,18 @@ export const NewSnippet = () => {
     };
   }, [code]);
 
-  const addTag = () => {
-    const newTag = tagInput.trim();
-    if (newTag && !tags.includes(newTag)) {
-      setTags([...tags, newTag]);
-      setTagInput("");
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addTag();
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
-  };
-
-  const generateUniqueId = async (): Promise<string> => {
-    let id: string;
-    let exists = true;
-
-    while (exists) {
-      id = Math.floor(100000000 + Math.random() * 900000000).toString();
-      const filePath = `${collectionPath}/${id}.json`;
-      exists = await fs.exists(filePath);
-    }
-
-    return id!;
-  };
-
   const handleSaveSnippet = async () => {
     if (!title || !code) {
-      toast.error("Title and code are required.");
+      toast({
+        title: "Error",
+        description: "Title and code are required.",
+        variant: "destructive",
+      });
       return;
     }
 
     try {
-      const id = await generateUniqueId();
+      const id = Math.floor(100000000 + Math.random() * 900000000).toString();
       const finalTags = tags.length > 0 ? tags : ["unlabeled"];
 
       const newSnippet = { id, title, description, code, language, tags: finalTags, starred: false, date: new Date().toISOString() };
@@ -93,41 +66,94 @@ export const NewSnippet = () => {
       const filePath = `${collectionPath}/${id}.json`;
       await fs.writeTextFile(filePath, JSON.stringify(newSnippet, null, 2));
 
-      toast.success("Snippet saved successfully.");
+      toast({
+        title: "Success",
+        description: "SnipIt saved successfully.",
+      });
+
+      // Reset input fields
       setTitle("");
       setDescription("");
       setCode("");
       setLanguage("");
       setTags([]);
+
+      // Close the NewSnippet view and navigate back to "snipits"
+      setActivePage("snipits");
     } catch (error) {
-      console.error("Failed to save snippet:", error);
-      toast.error("Failed to save snippet.");
+      console.error("Failed to save SnipIt:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save SnipIt.",
+        variant: "destructive",
+      });
     }
   };
 
   return (
     <ThemeProvider>
-      <div className="h-screen flex items-center justify-center">
-        <div className="max-h-[90vh] w-full max-w-2xl bg-background p-6 space-y-4 overflow-y-auto scrollbar-hidden rounded-lg shadow-md">
-          <h1 className="text-2xl font-bold text-center">New Snippet</h1>
+      <div className="h-full w-full flex flex-col bg-background text-foreground">
+        <div className="flex flex-1 overflow-hidden">
+          <aside className="w-64 border-r border-border p-4 text-sm text-muted-foreground">
+            <h2 className="text-lg font-semibold text-foreground mb-3">SnipIt Info</h2>
+            <Input
+              placeholder="Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md mb-4"
+            />
 
-          <Input
-            placeholder="Snippet Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full"
-          />
+            <Input
+              placeholder="Description (optional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md mb-4"
+            />
 
-          <Input
-            placeholder="Description (optional)"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full"
-          />
+            <div className="mb-4">
+              <h3 className="text-md font-semibold text-foreground mb-2">Language</h3>
+              <Input
+                placeholder="Language"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md"
+              />
+              <span className="text-xs text-muted-foreground">Auto-detects as you type (Editable)</span>
+            </div>
 
-          <div className="relative">
+            <h3 className="text-md font-semibold text-foreground mb-2">Tags</h3>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {tags.map((tag, index) => (
+                <Badge key={index} className="px-3 py-1 bg-secondary text-secondary-foreground rounded-md text-xs">
+                  {tag}
+                  <button onClick={() => setTags(tags.filter((t) => t !== tag))} className="ml-1 text-red-500 hover:text-red-700">
+                    ×
+                  </button>
+                </Badge>
+              ))}
+            </div>
+            <Input
+              type="text"
+              placeholder="Add a tag..."
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const newTag = tagInput.trim();
+                  if (newTag && !tags.includes(newTag)) {
+                    setTags([...tags, newTag]);
+                  }
+                  setTagInput("");
+                }
+              }}
+              className="w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md"
+            />
+          </aside>
+
+          <div className="flex-1 overflow-auto hide-scrollbar">
             <MonacoEditor
-              height="250px"
+              height="100%"
               language={language || "plaintext"}
               theme="vs-dark"
               value={code}
@@ -138,43 +164,28 @@ export const NewSnippet = () => {
                 wordWrap: "on",
                 automaticLayout: true,
                 scrollBeyondLastLine: false,
-                scrollbar: { vertical: "hidden", horizontal: "auto" },
+                scrollbar: { vertical: "hidden", horizontal: "hidden" },
                 overviewRulerLanes: 0,
               }}
             />
           </div>
+        </div>
 
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder="Detected language"
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="w-full"
-            />
-            <span className="text-sm text-muted-foreground">(Editable)</span>
-          </div>
+        <div className="absolute bottom-6 right-6 flex gap-3">
+          <Button
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-md transition-all duration-200 ease-in-out"
+            onClick={handleSaveSnippet}
+          >
+            <Save className="w-5 h-5" />
+            <span>Save</span>
+          </Button>
 
-          <div className="flex items-center flex-wrap gap-2 border rounded-md px-2 py-1 bg-background focus-within:ring-2 ring-ring">
-            {tags.map((tag, index) => (
-              <Badge key={index} className="flex items-center gap-1 px-2 py-1">
-                {tag}
-                <button onClick={() => removeTag(tag)} className="ml-1 text-red-500 hover:text-red-700">
-                  ×
-                </button>
-              </Badge>
-            ))}
-            <input
-              type="text"
-              placeholder="Add a tag..."
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-1 outline-none bg-transparent"
-            />
-          </div>
-
-          <Button className="w-full py-3" onClick={handleSaveSnippet}>
-            Save Snippet
+          <Button
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-md transition-all duration-200 ease-in-out"
+            onClick={onClose}
+          >
+            <X className="w-5 h-5" />
+            <span>Cancel</span>
           </Button>
         </div>
       </div>

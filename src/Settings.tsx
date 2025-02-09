@@ -8,6 +8,7 @@ import { loadSettings, saveSettings } from "@/db/db";
 import { invoke } from "@tauri-apps/api/tauri";
 import { dialog } from "@tauri-apps/api";
 import { path as tauriPath } from "@tauri-apps/api";
+import { useToast } from "@/hooks/use-toast"; // Import ShadCN's toast
 
 const settingsOptions = [
   { name: "Themes", icon: <Palette className="w-4 h-4" /> },
@@ -18,50 +19,65 @@ const settingsOptions = [
 ];
 
 export default function Settings() {
-  const [collectionPath, setCollectionPath] = useState<string | null>(null);
-  const [appDirectory, setAppDirectory] = useState<string>("");
-  const [activeSection, setActiveSection] = useState("Themes");
   const { theme, setTheme } = useTheme();
+  const [activeSection, setActiveSection] = useState("Themes");
   const [settings, setSettings] = useState<{ os: string; firstStartup: string; collectionPath: string } | null>(null);
+  const [appDirectory, setAppDirectory] = useState<string>("");
+  const { toast } = useToast(); // ShadCN's toast hook
 
   useEffect(() => {
-    loadSettings().then((settings) => {
-      setSettings(settings);
-      if (settings.collectionPath) {
-        setCollectionPath(settings.collectionPath);
-      }
-    });
-
-    tauriPath.appDataDir().then((dir) => {
-      setAppDirectory(dir);
-    });
+    (async () => {
+      const loadedSettings = await loadSettings();
+      setSettings(loadedSettings);
+      setAppDirectory(await tauriPath.appDataDir());
+    })();
   }, []);
 
   const handleFolderOpen = async (path: string) => {
     try {
       await invoke("open_folder", { path });
+      toast({
+        title: "Success",
+        description: "Folder opened successfully.",
+      });
     } catch (error) {
       console.error("Failed to open folder:", error);
+      toast({
+        title: "Error",
+        description: "Failed to open folder.",
+        variant: "destructive",
+      });
     }
   };
-  
 
   const handleChangeCollectionPath = async () => {
     try {
       const selected = await dialog.open({ directory: true });
       if (selected && typeof selected === "string" && settings) {
-        const updatedSettings = {
-          os: settings.os || "Unknown OS",
-          firstStartup: settings.firstStartup || new Date().toISOString(),
-          collectionPath: selected,
-        };
+        const updatedSettings = { ...settings, collectionPath: selected };
         await saveSettings(updatedSettings);
         setSettings(updatedSettings);
-        setCollectionPath(selected);
+        toast({
+          title: "Collection Updated",
+          description: "Collection path has been changed successfully.",
+        });
       }
     } catch (error) {
       console.error("Failed to change collection path:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update collection path.",
+        variant: "destructive",
+      });
     }
+  };
+
+  const handleThemeChange = (value: "light" | "dark" | "system") => {
+    setTheme(value);
+    toast({
+      title: "Theme Updated",
+      description: `Theme has been changed to ${value}.`,
+    });
   };
 
   const renderSection = () => {
@@ -69,7 +85,7 @@ export default function Settings() {
       case "Themes":
         return (
           <Section title="Themes" description="Customize your theme and appearance settings.">
-            <Select value={theme} onValueChange={(value) => setTheme(value as "light" | "dark" | "system")}>
+            <Select value={theme} onValueChange={(value) => handleThemeChange(value as "light" | "dark" | "system")}>
               <SelectTrigger className="w-64">
                 <SelectValue placeholder="Select Theme" />
               </SelectTrigger>
@@ -86,39 +102,27 @@ export default function Settings() {
       case "Collections":
         return (
           <Section title="Collections" description="Select a folder to store your collections.">
-            <div className="relative w-96 flex items-center space-x-2">
+            <div className="flex items-center space-x-2 w-96">
               <Button variant="outline" onClick={handleChangeCollectionPath}>
                 <FolderOpen className="w-4 h-4 mr-1" /> Choose Folder
               </Button>
-              <Input type="text" className="flex-1" placeholder="No folder selected" value={collectionPath || ""} readOnly />
+              <Input type="text" className="flex-1" placeholder="No folder selected" value={settings?.collectionPath || ""} readOnly />
             </div>
           </Section>
         );
       case "About":
         return (
           <Section title="About" description="Information about the app and your device.">
-            <div className="relative w-96 space-y-2">
-              {settings ? (
-                <>
-                  <p><strong>OS:</strong> {settings.os}</p>
-                  <p><strong>First Startup:</strong> {new Date(settings.firstStartup).toLocaleString()}</p>
-                  <div className="flex items-center space-x-2">
-                    <p><strong>Collection Directory:</strong> {settings.collectionPath}</p>
-                    <Button size="sm" variant="outline" onClick={() => handleFolderOpen(settings.collectionPath)}>
-                      <Folder className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <p><strong>App Directory:</strong> {appDirectory}</p>
-                    <Button size="sm" variant="outline" onClick={() => handleFolderOpen(appDirectory)}>
-                      <Folder className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <p>Loading settings information...</p>
-              )}
-            </div>
+            {settings ? (
+              <div className="space-y-2 w-96">
+                <p><strong>OS:</strong> {settings.os}</p>
+                <p><strong>First Startup:</strong> {new Date(settings.firstStartup).toLocaleString()}</p>
+                <DirectoryInfo label="Collection Directory" path={settings.collectionPath} onOpen={handleFolderOpen} />
+                <DirectoryInfo label="App Directory" path={appDirectory} onOpen={handleFolderOpen} />
+              </div>
+            ) : (
+              <p>Loading settings information...</p>
+            )}
           </Section>
         );
       case "Test":
@@ -134,12 +138,7 @@ export default function Settings() {
         <h2 className="text-lg font-bold mb-4">Settings</h2>
         <div className="space-y-2">
           {settingsOptions.map(({ name, icon }) => (
-            <Button
-              key={name}
-              variant={activeSection === name ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => setActiveSection(name)}
-            >
+            <Button key={name} variant={activeSection === name ? "secondary" : "ghost"} className="w-full justify-start" onClick={() => setActiveSection(name)}>
               {icon}
               <span className="ml-2">{name}</span>
             </Button>
@@ -157,6 +156,17 @@ function Section({ title, description, children }: { title: string; description:
       <h1 className="text-2xl font-bold">{title}</h1>
       <p className="mb-4">{description}</p>
       {children}
+    </div>
+  );
+}
+
+function DirectoryInfo({ label, path, onOpen }: { label: string; path: string; onOpen: (path: string) => void }) {
+  return (
+    <div className="flex items-center space-x-2">
+      <p><strong>{label}:</strong> {path}</p>
+      <Button size="sm" variant="outline" onClick={() => onOpen(path)}>
+        <Folder className="w-4 h-4" />
+      </Button>
     </div>
   );
 }

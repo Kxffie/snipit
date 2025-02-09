@@ -8,15 +8,18 @@ import Settings from "./Settings";
 import { Home } from "./Home";
 import { SnipItsView } from "./SnipItsView";
 import { NewSnippet } from "./NewSnippet";
+import { Toaster } from "./components/ui/toaster";
 
+type Page = "home" | "snipits" | "settings" | "newsnippet" | "view";
 
 export const App = () => {
-  const [activePage, setActivePage] = useState<"home" | "snipits" | "settings" | "newsnippet">("home");
+  const [activePage, setActivePage] = useState<Page>("home");
 
   return (
     <ThemeProvider>
       <div className="flex flex-col h-screen overflow-hidden ">
         <Navbar />
+        <Toaster />
 
         <div className="flex h-screen overflow-hidden">
           <Sidebar setActivePage={setActivePage} />
@@ -25,7 +28,8 @@ export const App = () => {
             {activePage === "home" && <Home />}
             {activePage === "snipits" && <SnipItsView setActivePage={setActivePage} />}
             {activePage === "settings" && <Settings />}
-            {activePage === "newsnippet" && <NewSnippet />}
+            {activePage === "newsnippet" && <NewSnippet onClose={() => setActivePage("snipits")} setActivePage={setActivePage} />}
+
           </div>
         </div>
       </div>
