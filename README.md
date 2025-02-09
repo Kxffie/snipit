@@ -1,7 +1,7 @@
 # SnipIt - Code Snippet Manager  
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/f532cd76-fd25-4062-a69e-f28134c28386" width="750" alt="SnipIt Logo">
+  <img src="https://github.com/user-attachments/assets/dac381c2-ece4-4707-b1d2-8d41e477508f" width="750" alt="SnipIt Logo">
 </p>
 
 <p align="center">
