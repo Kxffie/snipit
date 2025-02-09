@@ -268,6 +268,9 @@ export const SnipItsView = ({ setActivePage }: { setActivePage: React.Dispatch<R
                     borderRadius: "0.375rem",
                     fontSize: "0.9rem",
                     lineHeight: "1.4",
+                    whiteSpace: "pre-wrap", // Prevents horizontal scrolling but wraps text
+                    wordBreak: "break-word", // Ensures long words don't overflow
+                    overflow: "auto", // Adds scrollbars when needed
                   }}
                 >
                   {snippet.code}

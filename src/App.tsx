@@ -21,7 +21,7 @@ export const App = () => {
         <div className="flex h-screen overflow-hidden">
           <Sidebar setActivePage={setActivePage} />
 
-          <div className="flex-1 p-4 overflow-hidden rounded-tl-lg">
+          <div className="flex-1 overflow-hidden rounded-tl-lg">
             {activePage === "home" && <Home />}
             {activePage === "snipits" && <SnipItsView setActivePage={setActivePage} />}
             {activePage === "settings" && <Settings />}

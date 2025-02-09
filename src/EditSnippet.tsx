@@ -82,64 +82,70 @@ export const EditSnippet = ({ snippetId, onCancel, onSave }: { snippetId: string
 
   return (
     <ThemeProvider>
-      <div className="h-full max-w-2xl mx-auto p-6 space-y-4">
-        <h1 className="text-2xl font-bold text-center">Edit Snippet</h1>
+      <div className="h-screen flex items-center justify-center">
+        <div className="max-h-[90vh] w-full max-w-2xl bg-background p-6 space-y-4 overflow-y-auto scrollbar-hidden rounded-lg shadow-md">
+          <h1 className="text-2xl font-bold text-center">Edit Snippet</h1>
 
-        <Input
-          placeholder="Snippet Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full"
-        />
-
-        <Input
-          placeholder="Language (e.g., javascript, python)"
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-          className="w-full"
-        />
-
-        <MonacoEditor
-          height="400px"
-          language={language || "plaintext"}
-          theme="vs-dark"
-          value={code}
-          onChange={(value) => setCode(value || "")}
-          options={{
-            fontSize: 14,
-            minimap: { enabled: false },
-            wordWrap: "on",
-            automaticLayout: true,
-            scrollBeyondLastLine: false,
-          }}
-        />
-
-        <div className="flex items-center flex-wrap gap-2 border rounded-md px-2 py-1 bg-background focus-within:ring-2 ring-ring">
-          {tags.map((tag, index) => (
-            <Badge key={index} className="flex items-center gap-1 px-2 py-1">
-              {tag}
-              <button onClick={() => removeTag(tag)} className="ml-1 text-red-500 hover:text-red-700">
-                ×
-              </button>
-            </Badge>
-          ))}
-          <input
-            type="text"
-            placeholder="Add a tag..."
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="flex-1 outline-none bg-transparent"
+          <Input
+            placeholder="Snippet Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full"
           />
-        </div>
 
-        <div className="flex justify-between gap-4">
-          <Button variant="outline" className="w-full" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button className="w-full" onClick={handleSave}>
-            Save Changes
-          </Button>
+          <Input
+            placeholder="Language (e.g., JavaScript, Python)"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="w-full"
+          />
+
+          <div className="relative">
+            <MonacoEditor
+              height="250px"
+              language={language || "plaintext"}
+              theme="vs-dark"
+              value={code}
+              onChange={(value) => setCode(value || "")}
+              options={{
+                fontSize: 14,
+                minimap: { enabled: false },
+                wordWrap: "on",
+                automaticLayout: true,
+                scrollBeyondLastLine: false,
+                scrollbar: { vertical: "hidden", horizontal: "auto" },
+                overviewRulerLanes: 0,
+              }}
+            />
+          </div>
+
+          <div className="flex items-center flex-wrap gap-2 border rounded-md px-2 py-1 bg-background focus-within:ring-2 ring-ring">
+            {tags.map((tag, index) => (
+              <Badge key={index} className="flex items-center gap-1 px-2 py-1">
+                {tag}
+                <button onClick={() => removeTag(tag)} className="ml-1 text-red-500 hover:text-red-700">
+                  ×
+                </button>
+              </Badge>
+            ))}
+            <input
+              type="text"
+              placeholder="Add a tag..."
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="flex-1 outline-none bg-transparent"
+            />
+          </div>
+
+          <div className="flex justify-between gap-4">
+            <Button variant="outline" className="w-full" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button className="w-full" onClick={handleSave}>
+              Save Changes
+            </Button>
+          </div>
         </div>
       </div>
     </ThemeProvider>
