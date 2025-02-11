@@ -48,7 +48,7 @@ export const SnipItView = ({ snippet, onClose }: { snippet: any; onClose: () => 
           </div>
         </div>
 
-        {/* Back Button (Placed at bottom-left, same as SnipItForm's action buttons) */}
+        {/* Action Button */}
         <div className="absolute bottom-6 right-6">
           <Button variant="ghost" className="flex items-center justify-center gap-2 px-4 py-3 bg-secondary text-primary rounded-md" onClick={onClose}>
             <ArrowLeft className="w-5 h-5" />

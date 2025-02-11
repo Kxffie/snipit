@@ -1,42 +1,38 @@
-import { os, fs, path } from '@tauri-apps/api';
-import { useToast } from "@/hooks/use-toast"; // Import ShadCN's toast
+import { os, fs, path } from "@tauri-apps/api";
+import { CollectionsService, Collection } from "@/lib/CollectionsService";
 
 export async function getDeviceInfo() {
-  const { toast } = useToast();
-  console.log("Starting device info check...");
+  console.log("🔹 Starting device info check...");
 
   try {
     const platform = await os.platform();
     const version = await os.version();
     const arch = await os.arch();
 
-    console.log(`Platform detected: ${platform}`);
-    console.log(`Version: ${version}`);
-    console.log(`Architecture: ${arch}`);
+    console.log(`✅ Platform detected: ${platform}`);
+    console.log(`✅ OS Version: ${version}`);
+    console.log(`✅ Architecture: ${arch}`);
 
-    let osDetails = '';
-    if (platform === 'darwin') {
+    let osDetails = "";
+    if (platform === "darwin") {
       osDetails = `macOS ${version}`;
-    } else if (platform === 'win32') {
+    } else if (platform === "win32") {
       osDetails = `Windows ${version}`;
-    } else if (platform === 'linux') {
+    } else if (platform === "linux") {
       osDetails = `Linux ${version}`;
     } else {
       osDetails = `Unknown OS: ${platform} ${version}`;
     }
 
-    console.log(`OS Details: ${osDetails}`);
+    console.log(`📌 OS Details: ${osDetails}`);
 
-    // Check and create the necessary directory
-    const snipitDir = await checkAndCreateDirectory(toast);
+    // Check and create the necessary directories
+    const snipitDir = await checkAndCreateDirectory();
 
-    // Initialize settings.json
-    await initializeSettings(snipitDir, osDetails, toast);
+    // Initialize settings.json & collections
+    await initializeSettings(snipitDir, osDetails);
 
-    toast({
-      title: "Success",
-      description: "Device info check completed successfully.",
-    });
+    console.log("✅ Device info check completed successfully.");
 
     return {
       platform,
@@ -45,104 +41,86 @@ export async function getDeviceInfo() {
       osDetails,
     };
   } catch (error) {
-    console.error("Device info check failed:", error);
-    toast({
-      title: "Error",
-      description: "Device info check failed.",
-      variant: "destructive",
-    });
+    console.error("❌ Device info check failed:", error);
     throw error;
   }
 }
 
-async function checkAndCreateDirectory(toast: any) {
-  console.log("Checking for 'com.snipit.dev' directory...");
+async function checkAndCreateDirectory() {
+  console.log("🔹 Checking for 'com.snipit.dev' directory...");
 
   try {
     const appDataDir = await path.appDataDir();
-    const snipitDir = `${appDataDir}`;
+    const snipitDir = `${appDataDir}com.snipit.dev/`;
 
     const exists = await fs.exists(snipitDir);
 
     if (!exists) {
-      console.log("'com.snipit.dev' directory not found. Creating it now...");
+      console.log("⚠️ 'com.snipit.dev' directory not found. Creating it now...");
       await fs.createDir(snipitDir, { recursive: true });
-      console.log("'com.snipit.dev' directory created successfully.");
-      toast({
-        title: "Directory Created",
-        description: "'com.snipit.dev' directory has been created.",
-      });
+      console.log("✅ 'com.snipit.dev' directory created successfully.");
     } else {
-      console.log("'com.snipit.dev' directory already exists.");
+      console.log("✅ 'com.snipit.dev' directory already exists.");
     }
 
     return snipitDir;
   } catch (error) {
-    console.error("Error while checking/creating 'com.snipit.dev' directory:", error);
-    toast({
-      title: "Error",
-      description: "Failed to create 'com.snipit.dev' directory.",
-      variant: "destructive",
-    });
+    console.error("❌ Error while checking/creating 'com.snipit.dev' directory:", error);
     throw error;
   }
 }
 
-async function initializeSettings(snipitDir: string, osDetails: string, toast: any) {
-  console.log("Initializing settings.json...");
+async function initializeSettings(snipitDir: string, osDetails: string) {
+  console.log("🔹 Initializing settings.json...");
 
   const settingsPath = `${snipitDir}settings.json`;
-  const snippetsPath = `${snipitDir}snippets`;
+  const defaultCollectionPath = `${snipitDir}snippets/`;
 
   try {
     const settingsExists = await fs.exists(settingsPath);
 
     if (!settingsExists) {
-      console.log("settings.json not found. Creating with default values...");
+      console.log("⚠️ settings.json not found. Creating with default values...");
 
       const initialSettings = {
         os: osDetails,
         firstStartup: new Date().toISOString(),
-        collectionPath: snippetsPath,
+        collections: [],
       };
 
       await fs.writeTextFile(settingsPath, JSON.stringify(initialSettings, null, 2));
-      await fs.createDir(snippetsPath, { recursive: true }); // Ensure the snippets folder exists
-      console.log("settings.json created successfully.");
-
-      toast({
-        title: "Settings Initialized",
-        description: "settings.json has been created with default values.",
-      });
-    } else {
-      console.log("settings.json found. Reading settings...");
-
-      const settingsContent = await fs.readTextFile(settingsPath);
-      const settings = JSON.parse(settingsContent);
-
-      if (settings.collectionPath === null) {
-        console.log("collectionPath is null. Setting to 'snippets' directory...");
-        settings.collectionPath = snippetsPath;
-
-        await fs.createDir(snippetsPath, { recursive: true }); // Ensure the snippets folder exists
-        await fs.writeTextFile(settingsPath, JSON.stringify(settings, null, 2));
-        console.log("collectionPath updated successfully.");
-
-        toast({
-          title: "Settings Updated",
-          description: "collectionPath has been set to the snippets directory.",
-        });
-      } else {
-        console.log(`collectionPath is set to: ${settings.collectionPath}`);
-      }
+      console.log("✅ settings.json created successfully.");
     }
+
+    // Ensure collections exist in settings
+    await CollectionsService.ensureCollectionsExist();
+    let collections = await CollectionsService.getCollections();
+
+    // 🔹 **Fix: Ensure `collections` is always an array**
+    if (!Array.isArray(collections)) {
+      console.warn("⚠️ `collections` is not an array. Resetting to an empty array.");
+      collections = [];
+    }
+
+    // Ensure the default "snippets" collection exists
+    const defaultCollection: Collection = {
+      id: "default",
+      path: defaultCollectionPath,
+      name: "Default Collection",
+    };
+
+    if (!collections.some((col) => col.id === defaultCollection.id)) {
+      console.log("⚠️ Default collection not found. Adding...");
+      await fs.createDir(defaultCollectionPath, { recursive: true }); // Ensure folder exists
+      await CollectionsService.addCollection(defaultCollection);
+      console.log("✅ Default collection added successfully.");
+    } else {
+      console.log("✅ Default collection already exists.");
+    }
+
+    console.log("✅ Settings initialization complete.");
   } catch (error) {
-    console.error("Error initializing settings.json:", error);
-    toast({
-      title: "Error",
-      description: "Failed to initialize settings.json.",
-      variant: "destructive",
-    });
+    console.error("❌ Error initializing settings.json:", error);
     throw error;
   }
 }
