@@ -252,17 +252,21 @@ export const SnipItsList = ({ setActivePage }: { setActivePage: React.Dispatch<R
 
         {/* Snippet cards list */}
         <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hidden">
-        {filteredSnippets.map((snippet) => (
-          <SnipItCard
-            key={snippet.id}
-            snippet={snippet}
-            onEdit={(id) => setEditingSnippetId(id)}
-            onDelete={(id) => setSnippets(snippets.filter(s => s.id !== id))}
-            onSelect={(snippet) => setSelectedSnippet(snippet)}
-            onToggleStar={toggleStar}
-          />
-        ))}
-        </div>
+        {filteredSnippets
+          .slice() // Optional, to avoid mutating the original array
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .map((snippet) => (
+            <SnipItCard
+              key={snippet.id}
+              snippet={snippet}
+              onEdit={(id) => setEditingSnippetId(id)}
+              onDelete={(id) => setSnippets(snippets.filter((s) => s.id !== id))}
+              onSelect={(snippet) => setSelectedSnippet(snippet)}
+              onToggleStar={toggleStar}
+            />
+          ))}
+      </div>
+
       </main>
     </div>
   );
