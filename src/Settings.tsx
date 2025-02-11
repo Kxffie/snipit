@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
+import { CollectionsService, Collection } from "@/lib/CollectionsService";
+import { loadSettings } from "./db/db";
+
+import { os, app, dialog, path as tauriPath } from "@tauri-apps/api";
+
+import { Plug, Palette, Clipboard, Container, FolderOpen, Library, Trash, X, Check } from "lucide-react";
+
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plug, Palette, Clipboard, Container, FolderOpen, Library, Trash, X, Check } from "lucide-react";
-import { path as tauriPath } from "@tauri-apps/api";
-import { dialog } from "@tauri-apps/api";
 import { useToast } from "@/hooks/use-toast";
-import { CollectionsService, Collection } from "@/lib/CollectionsService";
 import { Separator } from "./components/ui/separator";
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "./components/ui/input";
-
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -44,16 +45,34 @@ export default function Settings() {
   const { theme, setTheme } = useTheme();
   const [activeSection, setActiveSection] = useState("Themes");
   const [collections, setCollections] = useState<Collection[]>([]);
-  const [appDirectory, setAppDirectory] = useState<string>("");
   const [collectionToDelete, setCollectionToDelete] = useState<Collection | null>(null);
-  const [newCollection, setNewCollection] = useState<{ name: string; path: string } | null>(null); // ✅ Moved here
+  const [newCollection, setNewCollection] = useState<{ name: string; path: string } | null>(null);
   const { toast } = useToast();
+
+  const [appDirectory, setAppDirectory] = useState<string>("");
+  const [osDetails, setOsDetails] = useState<string>("");
+  const [arch, setArch] = useState<string>("");
+  const [appVersion, setAppVersion] = useState<string>("");
+  const [tauriVersion, setTauriVersion] = useState<string>("");
+  const [firstStartup, setFirstStartup] = useState<string>("");
 
   useEffect(() => {
     (async () => {
-      await CollectionsService.ensureCollectionsExist();
-      setCollections(await CollectionsService.getCollections());
       setAppDirectory(await tauriPath.appDataDir());
+
+      const platform = await os.platform();
+      const version = await os.version();
+      const architecture = await os.arch();
+      setOsDetails(`${platform} ${version}`);
+      setArch(architecture);
+
+      setAppVersion(await app.getVersion());
+      setTauriVersion(await app.getTauriVersion());
+
+      const settings = await loadSettings();
+      if (settings?.firstStartup) {
+        setFirstStartup(new Date(settings.firstStartup).toLocaleString());
+      }
     })();
   }, []);
 
@@ -207,11 +226,35 @@ export default function Settings() {
 
       case "About":
         return (
-          <Section title="About" description="Information about the app and your device.">
-            <div className="space-y-2 w-96">
+        <Section title="About" description="Information about the app and your device.">
+          <div className="space-y-4 w-96">
+        
+            {/* System Information */}
+            <div>
+              <h3 className="text-md font-semibold mb-2 text-muted-foreground">System Information</h3>
+              <Separator className="my-2" />
+              <p><strong>Operating System:</strong> {osDetails}</p>
+              <p><strong>Architecture:</strong> {arch}</p>
+              <p><strong>First Opened:</strong> {firstStartup}</p>
+            </div>
+        
+            {/* App Information */}
+            <div>
+              <h3 className="text-md font-semibold mb-2 text-muted-foreground">App Information</h3>
+              <Separator className="my-2" />
+              <p><strong>App Version:</strong> {appVersion}</p>
+              <p><strong>Tauri Version:</strong> {tauriVersion}</p>
+            </div>
+        
+            {/* Storage Paths */}
+            <div>
+              <h3 className="text-md font-semibold mb-2 text-muted-foreground">Storage Paths</h3>
+              <Separator className="my-2" />
               <p><strong>App Directory:</strong> {appDirectory}</p>
             </div>
-          </Section>
+        
+          </div>
+        </Section>
         );
 
 
@@ -248,7 +291,7 @@ export default function Settings() {
   return (
     <div className="flex h-full">
       <aside className="w-64 flex-none p-4 border-r">
-        <h2 className="text-lg font-bold mb-4">Settings</h2>
+        <h2 className="text-md font-semibold mb-2 text-muted-foreground">Settings</h2>
         <div className="space-y-2">
           {settingsOptions.map(({ name, icon }) => (
           <Button
