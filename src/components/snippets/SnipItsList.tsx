@@ -6,7 +6,6 @@ import { SnipItCard } from "./SnipItCard";
 
 import { 
   loadSnippets, 
-  filterSnippetsByQuery,
   Snippet 
 } from "@/lib/SnipItService";
 
