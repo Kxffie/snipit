@@ -8,7 +8,7 @@ import {
   loadSnippets, 
   filterSnippetsByQuery,
   Snippet 
-} from "@/utils/SnipItService";
+} from "@/lib/SnipItService";
 
 import {
   Tooltip,

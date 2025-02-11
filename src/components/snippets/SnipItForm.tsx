@@ -7,7 +7,7 @@ import langDetector from "lang-detector";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getSnippetById, saveSnippet, Snippet } from "@/utils/SnipItService";
+import { getSnippetById, saveSnippet, Snippet } from "@/lib/SnipItService";
 
 export const SnipItForm = ({
   snippetId,

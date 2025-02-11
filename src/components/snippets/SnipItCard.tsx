@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Star, Pencil, Copy, Trash } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { Snippet, toggleStarSnippet, deleteSnippet } from "@/utils/SnipItService";
+import { Snippet, toggleStarSnippet, deleteSnippet } from "@/lib/SnipItService";
 import { useToast } from "@/hooks/use-toast";
 
 import {

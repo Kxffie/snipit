@@ -1,15 +1,17 @@
 import { ThemeProvider } from "@/components/theme-provider";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
-export const SnipItView = ({ snippet }: { snippet: any; onClose: () => void }) => {
+export const SnipItView = ({ snippet, onClose }: { snippet: any; onClose: () => void }) => {
   return (
     <ThemeProvider>
       <div className="h-full w-full flex flex-col bg-background text-foreground">
         <div className="flex flex-1 overflow-hidden">
           <aside className="w-64 border-r border-border p-4 text-sm text-muted-foreground">
             <h2 className="text-lg font-semibold text-foreground mb-3">{snippet.title}</h2>
-            
+
             <p className="mb-2">
               <span className="font-bold text-foreground">Language: </span>
               {snippet.language}
@@ -44,6 +46,14 @@ export const SnipItView = ({ snippet }: { snippet: any; onClose: () => void }) =
               {snippet.code}
             </SyntaxHighlighter>
           </div>
+        </div>
+
+        {/* Back Button (Placed at bottom-left, same as SnipItForm's action buttons) */}
+        <div className="absolute bottom-6 right-6">
+          <Button variant="ghost" className="flex items-center justify-center gap-2 px-4 py-3 bg-secondary text-primary rounded-md" onClick={onClose}>
+            <ArrowLeft className="w-5 h-5" />
+            <span>Back</span>
+          </Button>
         </div>
       </div>
     </ThemeProvider>
