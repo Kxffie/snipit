@@ -19,17 +19,20 @@ import {
 } from "@/components/ui/alert-dialog";
 
 type SnipItCardProps = {
-  snippet: Snippet;
-  onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
-  onSelect: (snippet: Snippet) => void;
-};
+    snippet: Snippet;
+    onEdit: (id: string) => void;
+    onDelete: (id: string) => void;
+    onSelect: (snippet: Snippet) => void;
+    onToggleStar: (id: string, newStarredValue: boolean) => void; // <--- new callback
+  };
 
-export const SnipItCard = ({ snippet, onEdit, onDelete, onSelect }: SnipItCardProps) => {
+export const SnipItCard = ({ snippet, onEdit, onDelete, onSelect, onToggleStar }: SnipItCardProps) => {
   const { toast } = useToast();
 
   const handleToggleStar = async () => {
-    if (await toggleStarSnippet(snippet.id)) {
+    const success = await toggleStarSnippet(snippet.id);
+    if (success) {
+      onToggleStar(snippet.id, !snippet.starred);
       toast({
         title: snippet.starred ? "Unstarred" : "Starred",
         description: `Snippet ${snippet.starred ? "removed from" : "added to"} favorites.`,

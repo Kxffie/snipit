@@ -57,7 +57,53 @@ export const SnipItsList = ({ setActivePage }: { setActivePage: React.Dispatch<R
       setFilters([...filters, filter.toLowerCase()]);
     }
   };
+
+  const toggleStar = (id: string, newStarred: boolean) => {
+    setSnippets((prev) =>
+      prev.map((s) =>
+        s.id === id ? { ...s, starred: newStarred } : s
+      )
+    );
+  };
+
+  const filterSnippetsByQuery = (snippets: Snippet[], query: string): Snippet[] => {
+    if (!query.trim()) return snippets;
   
+    const terms = query
+      .toLowerCase()
+      .match(/(\w+:"[^"]+"|\w+:\S+|\S+)/g) || [];
+  
+    return snippets.filter((snippet) => {
+      return terms.every((term) => {
+        let [field, value] = term.includes(":") ? term.split(":") : ["all", term];
+        value = value.replace(/^"|"$/g, "").toLowerCase(); // strip any quotes
+  
+        switch (field) {
+          case "title":
+            return snippet.title.toLowerCase().includes(value);
+          case "description":
+            return (snippet.description ?? "").toLowerCase().includes(value);
+          case "content":
+            return snippet.code.toLowerCase().includes(value);
+          case "language":
+            return snippet.language.toLowerCase().includes(value);
+          case "tag":
+          case "tags":
+            return snippet.tags.some((tag) => tag.toLowerCase().includes(value));
+          case "all":
+          default:
+            return (
+              snippet.title.toLowerCase().includes(value) ||
+              (snippet.description ?? "").toLowerCase().includes(value) ||
+              snippet.code.toLowerCase().includes(value) ||
+              snippet.language.toLowerCase().includes(value) ||
+              snippet.tags.some((tag) => tag.toLowerCase().includes(value))
+            );
+        }
+      });
+    });
+  };
+
   const filteredSnippets = filterSnippetsByQuery(snippets, searchQuery);
 
   if (editingSnippetId) {
@@ -213,6 +259,7 @@ export const SnipItsList = ({ setActivePage }: { setActivePage: React.Dispatch<R
             onEdit={(id) => setEditingSnippetId(id)}
             onDelete={(id) => setSnippets(snippets.filter(s => s.id !== id))}
             onSelect={(snippet) => setSelectedSnippet(snippet)}
+            onToggleStar={toggleStar}
           />
         ))}
         </div>

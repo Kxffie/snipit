@@ -58,23 +58,31 @@ export default function Settings() {
 
   useEffect(() => {
     (async () => {
+      // 1) Load basic app/system info
       setAppDirectory(await tauriPath.appDataDir());
-
+  
       const platform = await os.platform();
       const version = await os.version();
       const architecture = await os.arch();
       setOsDetails(`${platform} ${version}`);
       setArch(architecture);
-
+  
       setAppVersion(await app.getVersion());
       setTauriVersion(await app.getTauriVersion());
-
+  
+      // 2) Load settings
       const settings = await loadSettings();
       if (settings?.firstStartup) {
         setFirstStartup(new Date(settings.firstStartup).toLocaleString());
       }
+  
+      // 3) Load collections from settings
+      const allCollections = await CollectionsService.getCollections();
+      console.log("Loaded collections:", allCollections);
+      setCollections(allCollections);
     })();
   }, []);
+  
 
   const handleSelectFolder = async () => {
     const selected = await dialog.open({ directory: true });
