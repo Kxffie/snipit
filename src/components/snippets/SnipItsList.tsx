@@ -2,13 +2,10 @@ import { useState, useEffect } from "react";
 import { FileText, X, Search, Sparkles, Folders, Tag, Filter } from "lucide-react";
 import { SnipItView } from "./SnipItView";
 import { SnipItForm } from "./SnipItForm";
-import { useToast } from "@/hooks/use-toast";
 import { SnipItCard } from "./SnipItCard";
 
 import { 
   loadSnippets, 
-  deleteSnippet, 
-  toggleStarSnippet, 
   filterSnippetsByQuery,
   Snippet 
 } from "@/utils/SnipItService";
