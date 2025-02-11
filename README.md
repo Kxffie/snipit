@@ -25,8 +25,6 @@
   </a>
 </p>
 
----
-
 <h2>🚀 Features</h2>
 
 <ul>
@@ -35,8 +33,6 @@
   <li>☁️ <strong>GitHub Backup</strong> – Sync snippets to a public or private GitHub repository. <em>(Planned)</em></li>
   <li>🔍 <strong>Fast Search</strong> – Quickly find stored snippets with keyword and tag filtering.</li>
 </ul>
-
----
 
 <h2>📦 Installation</h2>
 
@@ -95,8 +91,6 @@
   </pre>
 </ol>
 
----
-
 <h2>📖 Usage</h2>
 
 <ul>
@@ -104,8 +98,6 @@
   <li>📌 <strong>Search</strong> – Use keywords or filters to find saved snippets.</li>
   <li>📌 <strong>Copy & Use</strong> – Click to copy and insert it into your project instantly.</li>
 </ul>
-
----
 
 <h2>🤝 Contributing</h2>
 
@@ -134,8 +126,6 @@
   <li><strong>Open a pull request</strong> on GitHub.</li>
 </ol>
 
----
-
 <h2>🛠 Tech Stack</h2>
 
 <ul>
@@ -144,19 +134,13 @@
   <li>🎨 <strong>UI Components</strong>: ShadCN, Lucide Icons</li>
 </ul>
 
----
-
 <h2>📜 License</h2>
 
 <p>This project is licensed under the <strong>MIT License</strong>. See the <a href="LICENSE">LICENSE</a> file for details.</p>
 
----
-
 <h2>🌟 Support</h2>
 
 <p>If you find this project helpful, please ⭐ the repo! Have feedback? Open an issue or join the discussion.</p>
-
----
 
 <h2>📩 Contact</h2>
 
