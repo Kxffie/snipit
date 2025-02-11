@@ -1,28 +1,43 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { FileText, X, Search, Sparkles, Folders, Tag, Filter } from "lucide-react";
+
 import { SnipItView } from "./SnipItView";
 import { SnipItForm } from "./SnipItForm";
 import { SnipItCard } from "./SnipItCard";
 
-import { 
-  loadSnippets, 
-  Snippet 
-} from "@/lib/SnipItService";
+import { loadSnippets, Snippet } from "@/lib/SnipItService";
+import {
+  filterBySide,
+  filterBySearch,
+  sortSnippets,
+  SortOption,
+} from "@/lib/FilterSnippets";
 
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/components/ui/tooltip";
+
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type Page = "home" | "snipits" | "settings" | "newsnippet" | "view";
 
-export const SnipItsList = ({ setActivePage }: { setActivePage: React.Dispatch<React.SetStateAction<Page>> }) => {
+export const SnipItsList = ({
+  setActivePage,
+}: {
+  setActivePage: React.Dispatch<React.SetStateAction<Page>>;
+}) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<string[]>([]);
   const [snippets, setSnippets] = useState<Snippet[]>([]);
@@ -30,93 +45,99 @@ export const SnipItsList = ({ setActivePage }: { setActivePage: React.Dispatch<R
   const [editingSnippetId, setEditingSnippetId] = useState<string | null>(null);
   const [selectedSnippet, setSelectedSnippet] = useState<Snippet | null>(null);
 
+  // Sorting state
+  const [sortOption, setSortOption] = useState<SortOption>("date-desc");
+  const [starredFirst, setStarredFirst] = useState(true);
+
+  // Popover open/close
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+
+  // -------------------------------------
+  // Lifecycle
+  // -------------------------------------
   useEffect(() => {
-    fetchSnippets();
+    loadSnippetsData();
   }, []);
 
-  const fetchSnippets = async () => {
+  async function loadSnippetsData() {
     const loadedSnippets = await loadSnippets();
     setSnippets(loadedSnippets);
+
     const languages = Array.from(new Set(loadedSnippets.map((s) => s.language)));
     setAvailableLanguages(languages);
-  };
+  }
 
+  // -------------------------------------
+  // Handlers & Utilities
+  // -------------------------------------
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
 
   const removeFilter = (filter: string) => {
-    setFilters(filters.filter((f) => f !== filter));
+    setFilters((prev) => prev.filter((f) => f !== filter));
   };
 
   const toggleFilter = (filter: string) => {
-    if (filters.includes(filter.toLowerCase())) {
-      setFilters(filters.filter((f) => f !== filter.toLowerCase()));
-    } else {
-      setFilters([...filters, filter.toLowerCase()]);
-    }
+    const normalized = filter.toLowerCase();
+    setFilters((prev) =>
+      prev.includes(normalized)
+        ? prev.filter((f) => f !== normalized)
+        : [...prev, normalized]
+    );
   };
 
   const toggleStar = (id: string, newStarred: boolean) => {
     setSnippets((prev) =>
-      prev.map((s) =>
-        s.id === id ? { ...s, starred: newStarred } : s
-      )
+      prev.map((s) => (s.id === id ? { ...s, starred: newStarred } : s))
     );
   };
 
-  const filterSnippetsByQuery = (snippets: Snippet[], query: string): Snippet[] => {
-    if (!query.trim()) return snippets;
-  
-    const terms = query
-      .toLowerCase()
-      .match(/(\w+:"[^"]+"|\w+:\S+|\S+)/g) || [];
-  
-    return snippets.filter((snippet) => {
-      return terms.every((term) => {
-        let [field, value] = term.includes(":") ? term.split(":") : ["all", term];
-        value = value.replace(/^"|"$/g, "").toLowerCase(); // strip any quotes
-  
-        switch (field) {
-          case "title":
-            return snippet.title.toLowerCase().includes(value);
-          case "description":
-            return (snippet.description ?? "").toLowerCase().includes(value);
-          case "content":
-            return snippet.code.toLowerCase().includes(value);
-          case "language":
-            return snippet.language.toLowerCase().includes(value);
-          case "tag":
-          case "tags":
-            return snippet.tags.some((tag) => tag.toLowerCase().includes(value));
-          case "all":
-          default:
-            return (
-              snippet.title.toLowerCase().includes(value) ||
-              (snippet.description ?? "").toLowerCase().includes(value) ||
-              snippet.code.toLowerCase().includes(value) ||
-              snippet.language.toLowerCase().includes(value) ||
-              snippet.tags.some((tag) => tag.toLowerCase().includes(value))
-            );
-        }
-      });
-    });
-  };
+  // -------------------------------------
+  // Memoized Filter Results
+  // -------------------------------------
+  const sideFiltered = useMemo(
+    () => filterBySide(snippets, filters, availableLanguages),
+    [snippets, filters, availableLanguages]
+  );
 
-  const filteredSnippets = filterSnippetsByQuery(snippets, searchQuery);
+  const finalSnippets = useMemo(
+    () => filterBySearch(sideFiltered, searchQuery),
+    [sideFiltered, searchQuery]
+  );
 
+  // -------------------------------------
+  // Conditional Rendering
+  // -------------------------------------
   if (editingSnippetId) {
-    return <SnipItForm snippetId={editingSnippetId} onClose={() => setEditingSnippetId(null)} onSave={fetchSnippets} />;
+    return (
+      <SnipItForm
+        snippetId={editingSnippetId}
+        onClose={() => setEditingSnippetId(null)}
+        onSave={loadSnippetsData}
+      />
+    );
   }
 
   if (selectedSnippet) {
-    return <SnipItView snippet={selectedSnippet} onClose={() => setSelectedSnippet(null)} />;
+    return (
+      <SnipItView
+        snippet={selectedSnippet}
+        onClose={() => setSelectedSnippet(null)}
+      />
+    );
   }
 
+  // -------------------------------------
+  // Main Render
+  // -------------------------------------
   return (
     <div className="h-full flex">
+      {/* Sidebar */}
       <aside className="w-64 p-4 border-r">
-        <h3 className="text-md font-semibold mb-2 text-muted-foreground">Favorites</h3>
+        <h3 className="text-md font-semibold mb-2 text-muted-foreground">
+          Favorites
+        </h3>
         <div className="space-y-2 mb-4">
           <TooltipProvider>
             <Tooltip>
@@ -154,7 +175,9 @@ export const SnipItsList = ({ setActivePage }: { setActivePage: React.Dispatch<R
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={filters.includes("unlabeled") ? "secondary" : "ghost"}
+                  variant={
+                    filters.includes("unlabeled") ? "secondary" : "ghost"
+                  }
                   className="w-full justify-start"
                   onClick={() => toggleFilter("unlabeled")}
                 >
@@ -169,8 +192,7 @@ export const SnipItsList = ({ setActivePage }: { setActivePage: React.Dispatch<R
           </TooltipProvider>
         </div>
 
-
-        {/* List of tags that uses the languages of your snippets */}
+        {/* List of tags from snippet languages */}
         <h3 className="text-md font-semibold mb-2 text-muted-foreground">Tags</h3>
         <div className="space-y-2">
           {availableLanguages.map((language) => {
@@ -180,7 +202,9 @@ export const SnipItsList = ({ setActivePage }: { setActivePage: React.Dispatch<R
             return (
               <Button
                 key={language}
-                variant={filters.includes(normalizedLanguage) ? "secondary" : "ghost"}
+                variant={
+                  filters.includes(normalizedLanguage) ? "secondary" : "ghost"
+                }
                 className="w-full justify-start"
                 onClick={() => toggleFilter(language)}
               >
@@ -192,11 +216,8 @@ export const SnipItsList = ({ setActivePage }: { setActivePage: React.Dispatch<R
         </div>
       </aside>
 
-
-      {/* Entire Snippet List */}
+      {/* Main Content */}
       <main className="flex-1 p-6 overflow-hidden flex flex-col rounded-tl-lg">
-
-
         {/* Search, Filter, and New Snippet area */}
         <TooltipProvider>
           <div className="flex items-center space-x-2 mb-4">
@@ -204,27 +225,90 @@ export const SnipItsList = ({ setActivePage }: { setActivePage: React.Dispatch<R
               <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search snippets... (e.g., title:React content:useState)"
+                placeholder='Search snippets... (e.g., title:React content:useState)'
                 className="pl-10 w-full focus:border-accent"
                 value={searchQuery}
                 onChange={handleSearchChange}
               />
             </div>
 
+            {/* Sort/Filter Popover */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button className="px-4 py-2 rounded-md" variant="ghost">
-                  <Filter className="w-4 h-4" />
-                </Button>
+                <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button className="px-4 py-2 rounded-md" variant="ghost">
+                      <Filter className="w-4 h-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-2 w-56 flex flex-col space-y-2 text-left">
+                    {/* Sort Options */}
+                    <div className="flex flex-col space-y-1">
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          setSortOption("date-desc");
+                          setIsPopoverOpen(false);
+                        }}
+                      >
+                        Date: Newest First
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          setSortOption("date-asc");
+                          setIsPopoverOpen(false);
+                        }}
+                      >
+                        Date: Oldest First
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          setSortOption("title-asc");
+                          setIsPopoverOpen(false);
+                        }}
+                      >
+                        Title: A → Z
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          setSortOption("title-desc");
+                          setIsPopoverOpen(false);
+                        }}
+                      >
+                        Title: Z → A
+                      </Button>
+                    </div>
+
+                    <hr className="my-1 border-border" />
+
+                    {/* Additional Checkboxes */}
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <Checkbox
+                        checked={starredFirst}
+                        onCheckedChange={(val) => {
+                          setStarredFirst(Boolean(val));
+                        }}
+                      />
+                      <span>Starred First</span>
+                    </label>
+                  </PopoverContent>
+                </Popover>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Filter snippets</p>
+                <p>Filter / Sort snippets</p>
               </TooltipContent>
             </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button className="px-6 py-2 rounded-md" variant="ghost" onClick={() => setActivePage("newsnippet")}>
+                <Button
+                  className="px-6 py-2 rounded-md"
+                  variant="ghost"
+                  onClick={() => setActivePage("newsnippet")}
+                >
                   + New Snippet
                 </Button>
               </TooltipTrigger>
@@ -235,37 +319,42 @@ export const SnipItsList = ({ setActivePage }: { setActivePage: React.Dispatch<R
           </div>
         </TooltipProvider>
 
-
-        {/* filter badges */}
+        {/* Filter badges */}
         {filters.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
             {filters.map((filter) => (
-              <Badge key={filter} className="flex items-center space-x-2 px-3 py-1 bg-secondary text-secondary-foreground">
+              <Badge
+                key={filter}
+                className="flex items-center space-x-2 px-3 py-1 bg-secondary text-secondary-foreground"
+              >
                 <span>{filter}</span>
-                <X className="w-4 h-4 cursor-pointer" onClick={() => removeFilter(filter)} />
+                <X
+                  className="w-4 h-4 cursor-pointer"
+                  onClick={() => removeFilter(filter)}
+                />
               </Badge>
             ))}
           </div>
         )}
 
-
         {/* Snippet cards list */}
         <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hidden">
-        {filteredSnippets
-          .slice() // Optional, to avoid mutating the original array
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-          .map((snippet) => (
-            <SnipItCard
-              key={snippet.id}
-              snippet={snippet}
-              onEdit={(id) => setEditingSnippetId(id)}
-              onDelete={(id) => setSnippets(snippets.filter((s) => s.id !== id))}
-              onSelect={(snippet) => setSelectedSnippet(snippet)}
-              onToggleStar={toggleStar}
-            />
-          ))}
-      </div>
-
+          {finalSnippets
+            .slice() // optional: to avoid mutating the original array
+            .sort((a, b) => sortSnippets(a, b, sortOption, starredFirst))
+            .map((snippet) => (
+              <SnipItCard
+                key={snippet.id}
+                snippet={snippet}
+                onEdit={(id) => setEditingSnippetId(id)}
+                onDelete={(id) =>
+                  setSnippets((prev) => prev.filter((s) => s.id !== id))
+                }
+                onSelect={(s) => setSelectedSnippet(s)}
+                onToggleStar={toggleStar}
+              />
+            ))}
+        </div>
       </main>
     </div>
   );

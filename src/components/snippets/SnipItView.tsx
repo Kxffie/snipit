@@ -12,11 +12,17 @@ export const SnipItView = ({ snippet, onClose }: { snippet: any; onClose: () => 
           <aside className="w-64 border-r border-border p-4 text-sm text-muted-foreground">
             <h2 className="text-lg font-semibold text-foreground mb-3">{snippet.title}</h2>
 
+            <p className="mb-4">{snippet.description || "No Description"}</p>
+
             <p className="mb-2">
-              <span className="font-bold text-foreground">Language: </span>
-              {snippet.language}
+              <span className="font-bold text-foreground">Language </span>
             </p>
-            <p className="mb-4">{snippet.description}</p>
+            <p className="mb-4">{snippet.language}</p>
+
+            <p className="mb-2">
+              <span className="font-bold text-foreground">Created At </span>
+            </p>
+            <p className="mb-4">{new Date(snippet.date).toLocaleString()}</p>
 
             <h3 className="text-md font-semibold text-foreground mb-2">Tags</h3>
             <div className="flex flex-wrap gap-2">

@@ -4,7 +4,7 @@ import { loadSettings } from "./db/db";
 
 import { os, app, dialog, path as tauriPath } from "@tauri-apps/api";
 
-import { Plug, Palette, Clipboard, Container, FolderOpen, Library, Trash, X, Check } from "lucide-react";
+import { Cable, Plug, Palette, Clipboard, Container, FolderOpen, Library, Trash, X, Check } from "lucide-react";
 
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
@@ -24,14 +24,44 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 
-const settingsOptions = [
-  { name: "Themes", icon: <Palette className="w-4 h-4" /> },
-  { name: "Connections", icon: <Plug className="w-4 h-4" /> },
-  { name: "Collections", icon: <Container className="w-4 h-4" /> },
-  { name: "About", icon: <Library className="w-4 h-4" /> },
-  { name: "Trash", icon: <Trash className="w-4 h-4" /> },
-  { name: "Test", icon: <Clipboard className="w-4 h-4" /> },
+type SidebarOption =
+  | { type: "item"; name: string; icon: JSX.Element }
+  | { type: "separator" };
+
+const settingsOptions: SidebarOption[] = [
+  { type: "item", name: "Themes", icon: <Palette className="w-4 h-4" /> },
+  { type: "item", name: "Connections", icon: <Plug className="w-4 h-4" /> },
+  { type: "item", name: "Collections", icon: <Container className="w-4 h-4" /> },
+  { type: "separator" },
+  { type: "item", name: "About", icon: <Library className="w-4 h-4" /> },
+  { type: "item", name: "Telemetry", icon: <Cable className="w-4 h-4" /> },
+  { type: "separator" },
+  { type: "item", name: "Trash", icon: <Trash className="w-4 h-4" /> },
+  { type: "item", name: "Test", icon: <Clipboard className="w-4 h-4" /> },
 ];
+
+function renderSettingsOptions(
+  options: SidebarOption[],
+  activeSection: string,
+  setActiveSection: React.Dispatch<React.SetStateAction<string>>
+) {
+  return options.map((option, idx) => {
+    if (option.type === "separator") {
+      return <Separator key={`sep-${idx}`} className="my-2" />;
+    }
+    return (
+      <Button
+        key={option.name}
+        variant={activeSection === option.name ? "secondary" : "ghost"}
+        className="w-full justify-start"
+        onClick={() => setActiveSection(option.name)}
+      >
+        {option.icon}
+        <span className="ml-2">{option.name}</span>
+      </Button>
+    );
+  });
+}
 
 const trashClearOptions = [
   { label: "Never", value: "never" },
@@ -60,22 +90,22 @@ export default function Settings() {
     (async () => {
       // 1) Load basic app/system info
       setAppDirectory(await tauriPath.appDataDir());
-  
+
       const platform = await os.platform();
       const version = await os.version();
       const architecture = await os.arch();
       setOsDetails(`${platform} ${version}`);
       setArch(architecture);
-  
+
       setAppVersion(await app.getVersion());
       setTauriVersion(await app.getTauriVersion());
-  
+
       // 2) Load settings
       const settings = await loadSettings();
       if (settings?.firstStartup) {
         setFirstStartup(new Date(settings.firstStartup).toLocaleString());
       }
-  
+
       // 3) Load collections from settings
       const allCollections = await CollectionsService.getCollections();
       console.log("Loaded collections:", allCollections);
@@ -285,12 +315,20 @@ export default function Settings() {
         );
 
 
+      case "Telemetry":
+        return (
+          <Section title="Telemetry" description="Opt in or out of telemetry settings.">
+            <h2>This section lets me know data about how many users are using the app and stuff.</h2>
+          </Section>
+        );
+
       case "Test":
         return (
           <Section title="Test" description="Basically a boilerplate for me.">
             <h2>This section is used for testing various settings.</h2>
           </Section>
         );
+
       default:
         return null;
     }
@@ -301,17 +339,7 @@ export default function Settings() {
       <aside className="w-64 flex-none p-4 border-r">
         <h2 className="text-md font-semibold mb-2 text-muted-foreground">Settings</h2>
         <div className="space-y-2">
-          {settingsOptions.map(({ name, icon }) => (
-          <Button
-            key={name}
-            variant={activeSection === name ? "secondary" : "ghost"}
-            className="w-full justify-start"
-            onClick={() => setActiveSection(name)}
-          >
-            {icon}
-            <span className="ml-2">{name}</span>
-          </Button>
-          ))}
+          {renderSettingsOptions(settingsOptions, activeSection, setActiveSection)}
         </div>
       </aside>
       <main className="flex-1 p-6 overflow-auto">{renderSection()}</main>
@@ -319,7 +347,15 @@ export default function Settings() {
   );
 }
 
-function Section({ title, description, children }: { title: string; description: string; children?: React.ReactNode }) {
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children?: React.ReactNode;
+}) {
   return (
     <div>
       <h1 className="text-2xl font-bold">{title}</h1>

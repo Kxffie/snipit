@@ -1,6 +1,7 @@
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Star, Pencil, Copy, Trash } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { EllipsisVertical, Star, Pencil, Copy, Trash } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Snippet, toggleStarSnippet, deleteSnippet } from "@/lib/SnipItService";
@@ -69,33 +70,40 @@ export const SnipItCard = ({ snippet, onEdit, onDelete, onSelect, onToggleStar }
           <Button size="icon" variant="ghost" onClick={handleToggleStar}>
             <Star className={`w-4 h-4 ${snippet.starred ? "text-yellow-400" : ""}`} />
           </Button>
-          <Button size="icon" variant="ghost" onClick={() => onEdit(snippet.id)}>
-            <Pencil className="w-4 h-4" />
-          </Button>
-          <Button size="icon" variant="ghost" onClick={() => navigator.clipboard.writeText(snippet.code)}>
-            <Copy className="w-4 h-4" />
-          </Button>
-
-          {/* Delete Confirmation Dialog */}
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button size="icon" variant="ghost">
-                <Trash className="w-4 h-4 text-red-500" />
+                <EllipsisVertical className="w-4 h-4" />
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. The snippet will be permanently deleted.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(snippet.code)}>
+                <Copy className="w-4 h-4 mr-2" /> Copy Code
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onEdit(snippet.id)}>
+                <Pencil className="w-4 h-4 mr-2" /> Edit
+              </DropdownMenuItem>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem className="text-red-500">
+                    <Trash className="w-4 h-4 mr-2" /> Delete
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. The snippet will be permanently deleted.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
