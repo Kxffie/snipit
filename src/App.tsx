@@ -1,14 +1,14 @@
 import "./App.css";
-
 import { useState } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
-import Navbar from "./components/ui/navbar";
-import Sidebar from "./components/ui/sidebar";
+import Navbar from "./components/layout/navbar";
+import Sidebar from "./components/layout/sidebar";
 import Settings from "./Settings";
 import { Home } from "./Home";
-import { SnipItsView } from "./SnipItsView";
-import { NewSnippet } from "./NewSnippet";
+import { SnipItsList } from "./components/snippets/SnipItsList";
+import { SnipItForm } from "./components/snippets/SnipItForm";
 import { Toaster } from "./components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 type Page = "home" | "snipits" | "settings" | "newsnippet" | "view";
 
@@ -17,22 +17,25 @@ export const App = () => {
 
   return (
     <ThemeProvider>
-      <div className="flex flex-col h-screen overflow-hidden ">
-        <Navbar />
-        <Toaster />
+      <TooltipProvider>
+        <div className="flex flex-col h-screen overflow-hidden">
+          <Navbar />
+          <Toaster />
 
-        <div className="flex h-screen overflow-hidden">
-          <Sidebar setActivePage={setActivePage} />
+          <div className="flex h-screen overflow-hidden">
+            <Sidebar setActivePage={setActivePage} />
 
-          <div className="flex-1 overflow-hidden rounded-tl-lg">
-            {activePage === "home" && <Home />}
-            {activePage === "snipits" && <SnipItsView setActivePage={setActivePage} />}
-            {activePage === "settings" && <Settings />}
-            {activePage === "newsnippet" && <NewSnippet onClose={() => setActivePage("snipits")} setActivePage={setActivePage} />}
-
+            <div className="flex-1 overflow-hidden rounded-tl-lg">
+              {activePage === "home" && <Home />}
+              {activePage === "snipits" && <SnipItsList setActivePage={setActivePage} />}
+              {activePage === "settings" && <Settings />}
+              {activePage === "newsnippet" && (
+                <SnipItForm onClose={() => setActivePage("snipits")} onSave={() => setActivePage("snipits")} />
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </TooltipProvider>
     </ThemeProvider>
   );
 };

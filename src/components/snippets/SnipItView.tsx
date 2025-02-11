@@ -2,7 +2,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/prism";
 
-export const View = ({ snippet }: { snippet: any; onClose: () => void }) => {
+export const SnipItView = ({ snippet }: { snippet: any; onClose: () => void }) => {
   return (
     <ThemeProvider>
       <div className="h-full w-full flex flex-col bg-background text-foreground">

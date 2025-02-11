@@ -3,7 +3,7 @@ import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plug, Palette, Clipboard, Container, FolderOpen, Library, Folder } from "lucide-react";
+import { Plug, Palette, Clipboard, Container, FolderOpen, Library, Folder, Trash } from "lucide-react";
 import { loadSettings, saveSettings } from "@/db/db";
 import { invoke } from "@tauri-apps/api/tauri";
 import { dialog } from "@tauri-apps/api";
@@ -15,7 +15,16 @@ const settingsOptions = [
   { name: "Connections", icon: <Plug className="w-4 h-4" /> },
   { name: "Collections", icon: <Container className="w-4 h-4" /> },
   { name: "About", icon: <Library className="w-4 h-4" /> },
+  { name: "Trash", icon: <Trash className="w-4 h-4" /> },
   { name: "Test", icon: <Clipboard className="w-4 h-4" /> },
+];
+
+const trashClearOptions = [
+  { label: "Never", value: "never" },
+  { label: "Every Hour", value: "1h" },
+  { label: "Every 12 Hours", value: "12h" },
+  { label: "Every Day", value: "24h" },
+  { label: "Every Week", value: "168h" },
 ];
 
 export default function Settings() {
@@ -98,7 +107,11 @@ export default function Settings() {
           </Section>
         );
       case "Connections":
-        return <Section title="Connections" description="Manage API integrations, database connections, and more." />;
+        return (
+        <Section title="Connections" description="Manage API integrations, database connections, and more.">
+            <h2>This page does not do anything, don't worry, it's just for testing!</h2>
+        </Section>  
+        );
       case "Collections":
         return (
           <Section title="Collections" description="Select a folder to store your collections.">
@@ -125,8 +138,32 @@ export default function Settings() {
             )}
           </Section>
         );
+      case "Trash":
+        return (
+          <Section title="Trash" description="Manage trash cleanup settings.">
+            <div className="w-64">
+              <Select value={"never"}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Auto-Clear Interval" />
+                </SelectTrigger>
+                <SelectContent>
+                  {trashClearOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <h2>This page does not do anything, don't worry, it's just for testing!</h2>
+          </Section>
+        );
       case "Test":
-        return <Section title="Test" description="Basically a boilerplate for me." />;
+        return (
+          <Section title="Test" description="Basically a boilerplate for me.">
+            <h2>This page does not do anything, don't worry, it's just for testing!</h2>
+          </Section>
+        );
       default:
         return null;
     }

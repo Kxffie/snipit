@@ -1,39 +1,55 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import MonacoEditor from "@monaco-editor/react";
-import { fs } from "@tauri-apps/api";
-import { loadSettings } from "@/db/db";
+import langDetector from "lang-detector";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Save, X } from "lucide-react";
-import { useToast } from "@/hooks/use-toast"; // Import ShadCN's toast
+import { useToast } from "@/hooks/use-toast";
+import { getSnippetById, saveSnippet, Snippet } from "@/utils/SnipItService";
 
-export const EditSnippet = ({ snippetId, onCancel, onSave }: { snippetId: string; onCancel: () => void; onSave: () => void }) => {
-  const { toast } = useToast(); // ShadCN toast function
+export const SnipItForm = ({
+  snippetId,
+  onClose,
+  onSave,
+}: {
+  snippetId?: string;
+  onClose: () => void;
+  onSave: () => void;
+}) => {
+  const { toast } = useToast();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
-  const [collectionPath, setCollectionPath] = useState<string>("");
+
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const loadSnippet = async () => {
-      const settings = await loadSettings();
-      setCollectionPath(settings.collectionPath);
-
+      if (!snippetId) return;
+  
       try {
-        const filePath = `${settings.collectionPath}/${snippetId}.json`;
-        const content = await fs.readTextFile(filePath);
-        const snippet = JSON.parse(content);
-
+        const snippet = await getSnippetById(snippetId);
+  
+        // Ensure snippet exists and has required fields
+        if (!snippet || !snippet.title || !snippet.code) {
+          toast({
+            title: "Error",
+            description: "Invalid snippet: Missing title or code.",
+            variant: "destructive",
+          });
+          return;
+        }
+  
         setTitle(snippet.title);
-        setDescription(snippet.description);
+        setDescription(snippet.description ?? "");
         setCode(snippet.code);
-        setLanguage(snippet.language);
-        setTags(snippet.tags || []);
+        setLanguage(snippet.language ?? "");
+        setTags(snippet.tags ?? []);
       } catch (error) {
         console.error("Failed to load snippet:", error);
         toast({
@@ -43,9 +59,27 @@ export const EditSnippet = ({ snippetId, onCancel, onSave }: { snippetId: string
         });
       }
     };
-
+  
     loadSnippet();
   }, [snippetId]);
+  
+
+  useEffect(() => {
+    if (code && !snippetId) {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+      typingTimeoutRef.current = setTimeout(() => {
+        const detectedLanguage = langDetector(code);
+        if (detectedLanguage && detectedLanguage !== language) {
+          setLanguage(detectedLanguage);
+        }
+      }, 3000);
+    }
+
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    };
+  }, [code]);
 
   const handleSaveSnippet = async () => {
     if (!title || !code) {
@@ -58,16 +92,31 @@ export const EditSnippet = ({ snippetId, onCancel, onSave }: { snippetId: string
     }
 
     try {
-      const updatedSnippet = { id: snippetId, title, description, code, language, tags, date: new Date().toISOString() };
-      const filePath = `${collectionPath}/${snippetId}.json`;
+      const id = snippetId || Math.floor(100000000 + Math.random() * 900000000).toString();
+      const finalTags = tags.length > 0 ? tags : ["unlabeled"];
+      const snippetData: Snippet = {
+        id,
+        title,
+        description,
+        code,
+        language,
+        tags: finalTags,
+        starred: false,
+        date: new Date().toISOString(),
+      };
 
-      await fs.writeTextFile(filePath, JSON.stringify(updatedSnippet, null, 2));
-      toast({
-        title: "Success",
-        description: "SnipIt updated successfully.",
-      });
+      const success = await saveSnippet(snippetData);
+      if (success) {
+        toast({
+          title: "Success",
+          description: snippetId ? "SnipIt updated successfully." : "SnipIt saved successfully.",
+        });
 
-      onSave();
+        onSave();
+        onClose();
+      } else {
+        throw new Error("Failed to save snippet.");
+      }
     } catch (error) {
       console.error("Failed to save SnipIt:", error);
       toast({
@@ -84,7 +133,9 @@ export const EditSnippet = ({ snippetId, onCancel, onSave }: { snippetId: string
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar for metadata */}
           <aside className="w-64 border-r border-border p-4 text-sm text-muted-foreground">
-            <h2 className="text-lg font-semibold text-foreground mb-3">Edit Snippet</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-3">
+              {snippetId ? "Edit Snippet" : "New Snippet"}
+            </h2>
 
             <Input
               placeholder="Snippet Title"
@@ -108,6 +159,7 @@ export const EditSnippet = ({ snippetId, onCancel, onSave }: { snippetId: string
                 onChange={(e) => setLanguage(e.target.value)}
                 className="w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md"
               />
+              {!snippetId && <span className="text-xs text-muted-foreground">Auto-detects as you type (Editable)</span>}
             </div>
 
             <h3 className="text-md font-semibold text-foreground mb-2">Tags</h3>
@@ -163,18 +215,12 @@ export const EditSnippet = ({ snippetId, onCancel, onSave }: { snippetId: string
 
         {/* Action buttons */}
         <div className="absolute bottom-6 right-6 flex gap-3">
-          <Button
-            className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-md transition-all duration-200 ease-in-out"
-            onClick={handleSaveSnippet}
-          >
+          <Button className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-md" onClick={handleSaveSnippet}>
             <Save className="w-5 h-5" />
             <span>Save</span>
           </Button>
 
-          <Button
-            className="flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-md transition-all duration-200 ease-in-out"
-            onClick={onCancel}
-          >
+          <Button className="flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-md" onClick={onClose}>
             <X className="w-5 h-5" />
             <span>Cancel</span>
           </Button>
