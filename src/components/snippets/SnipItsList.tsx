@@ -1,11 +1,21 @@
 import { useState, useEffect, useMemo } from "react";
-import { FileText, X, Search, Sparkles, Folders, Tag, Filter } from "lucide-react";
+import {
+  FileText,
+  X,
+  Search,
+  Sparkles,
+  Folders,
+  Tag,
+  Filter,
+} from "lucide-react";
 
 import { SnipItView } from "./SnipItView";
 import { SnipItForm } from "./SnipItForm";
 import { SnipItCard } from "./SnipItCard";
 
 import { loadSnippets, Snippet } from "@/lib/SnipItService";
+import { CollectionsService, Collection } from "@/lib/CollectionsService";
+import { loadSettings, saveSettings } from "@/db/db";
 import {
   filterBySide,
   filterBySearch,
@@ -19,13 +29,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
-
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,21 +59,69 @@ export const SnipItsList = ({
 
   // Popover open/close
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [isCollectionPopoverOpen, setIsCollectionPopoverOpen] = useState(false);
 
-  // -------------------------------------
-  // Lifecycle
-  // -------------------------------------
+  // Collections
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
+
   useEffect(() => {
-    loadSnippetsData();
+    loadAllData();
   }, []);
 
-  async function loadSnippetsData() {
-    const loadedSnippets = await loadSnippets();
+  // -------------------------------------
+  // Load both Settings & Collections
+  // -------------------------------------
+  async function loadAllData() {
+    const settings = await loadSettings();
+    const savedCollectionId = settings?.selectedCollectionId;
+
+    // Load the list of collections
+    const cols = await CollectionsService.getCollections();
+    setCollections(cols);
+
+    // Determine our "default" selected collection
+    let defaultCol: Collection | null = null;
+    if (savedCollectionId) {
+      defaultCol = cols.find((c) => c.id === savedCollectionId) || null;
+    }
+    if (!defaultCol && cols.length > 0) {
+      defaultCol = cols[0];
+    }
+
+    setSelectedCollection(defaultCol);
+
+    // Load snippet data from the selected collection’s path (or fallback)
+    if (defaultCol) {
+      await loadSnippetsData(defaultCol.path);
+    } else {
+      await loadSnippetsData(); // fallback to your default
+    }
+  }
+
+  // -------------------------------------
+  // Load snippets for a given path
+  // -------------------------------------
+  async function loadSnippetsData(collectionPath?: string) {
+    const loadedSnippets = await loadSnippets(collectionPath);
     setSnippets(loadedSnippets);
 
     const languages = Array.from(new Set(loadedSnippets.map((s) => s.language)));
     setAvailableLanguages(languages);
   }
+
+  // When picking a different collection:
+  const handleCollectionSelect = async (col: Collection) => {
+    setSelectedCollection(col);
+    // Merge existing settings & just overwrite `selectedCollectionId`
+    await saveSettings({ selectedCollectionId: col.id });
+
+    // Reload snippet list for new path
+    await loadSnippetsData(col.path);
+
+    // Close the popover menu
+    setIsCollectionPopoverOpen(false);
+  };
 
   // -------------------------------------
   // Handlers & Utilities
@@ -114,7 +170,7 @@ export const SnipItsList = ({
       <SnipItForm
         snippetId={editingSnippetId}
         onClose={() => setEditingSnippetId(null)}
-        onSave={loadSnippetsData}
+        onSave={() => loadSnippetsData(selectedCollection?.path)}
       />
     );
   }
@@ -134,7 +190,7 @@ export const SnipItsList = ({
   return (
     <div className="h-full flex">
       {/* Sidebar */}
-      <aside className="w-64 p-4 border-r">
+      <aside className="w-64 p-4 border-r flex flex-col">
         <h3 className="text-md font-semibold mb-2 text-muted-foreground">
           Favorites
         </h3>
@@ -175,9 +231,7 @@ export const SnipItsList = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={
-                    filters.includes("unlabeled") ? "secondary" : "ghost"
-                  }
+                  variant={filters.includes("unlabeled") ? "secondary" : "ghost"}
                   className="w-full justify-start"
                   onClick={() => toggleFilter("unlabeled")}
                 >
@@ -193,12 +247,12 @@ export const SnipItsList = ({
         </div>
 
         {/* List of tags from snippet languages */}
-        <h3 className="text-md font-semibold mb-2 text-muted-foreground">Tags</h3>
-        <div className="space-y-2">
+        <h3 className="text-md font-semibold mb-2 text-muted-foreground">
+          Tags
+        </h3>
+        <div className="space-y-2 flex-1 overflow-auto">
           {availableLanguages.map((language) => {
             const normalizedLanguage = language.toLowerCase();
-            const IconComponent = FileText;
-
             return (
               <Button
                 key={language}
@@ -208,11 +262,46 @@ export const SnipItsList = ({
                 className="w-full justify-start"
                 onClick={() => toggleFilter(language)}
               >
-                <IconComponent className="w-4 h-4" />
+                <FileText className="w-4 h-4" />
                 <span className="ml-2">{language}</span>
               </Button>
             );
           })}
+        </div>
+
+        {/* COLLECTION SELECTOR - pinned at bottom */}
+        <div className="mt-4">
+          <Popover
+            open={isCollectionPopoverOpen}
+            onOpenChange={(open) => setIsCollectionPopoverOpen(open)}
+          >
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-full">
+                {selectedCollection?.name ?? "Select Collection"}
+              </Button>
+            </PopoverTrigger>
+
+            <PopoverContent
+              side="top"
+              sideOffset={8}
+              className="p-2 w-full max-h-48 overflow-y-auto"
+            >
+              {collections.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No collections found.</p>
+              ) : (
+                collections.map((col) => (
+                  <Button
+                    key={col.id}
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => handleCollectionSelect(col)}
+                  >
+                    {col.name}
+                  </Button>
+                ))
+              )}
+            </PopoverContent>
+          </Popover>
         </div>
       </aside>
 
@@ -288,9 +377,9 @@ export const SnipItsList = ({
                     <label className="flex items-center space-x-2 cursor-pointer">
                       <Checkbox
                         checked={starredFirst}
-                        onCheckedChange={(val: boolean) => {
-                          setStarredFirst(Boolean(val));
-                        }}
+                        onCheckedChange={(val: boolean) =>
+                          setStarredFirst(Boolean(val))
+                        }
                       />
                       <span>Starred First</span>
                     </label>
@@ -350,7 +439,7 @@ export const SnipItsList = ({
                 onDelete={(id) =>
                   setSnippets((prev) => prev.filter((s) => s.id !== id))
                 }
-                onSelect={(s) => setSelectedSnippet(s)}
+                onSelect={setSelectedSnippet}
                 onToggleStar={toggleStar}
               />
             ))}

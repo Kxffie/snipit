@@ -16,20 +16,31 @@ export type Snippet = {
 /**
  * Fetch all snippets from the collection directory.
  */
-export const loadSnippets = async (): Promise<Snippet[]> => {
+export const loadSnippets = async (
+  overridePath?: string
+): Promise<Snippet[]> => {
   try {
+    // If no override path is given, read from settings
     const settings = await loadSettings();
-    const collectionPath = settings.collectionPath;
+    // If overridePath is undefined, fall back to settings.collectionPath
+    const collectionPath = overridePath ?? settings.collectionPath;
+
+    if (!collectionPath) {
+      console.warn("No collection path specified or found in settings.");
+      return [];
+    }
+
+    // Load all .json snippet files from that folder
     const files = await fs.readDir(collectionPath);
-    
     const snippets: Snippet[] = [];
+
     for (const file of files) {
       if (file.name?.endsWith(".json")) {
         const content = await fs.readTextFile(`${collectionPath}/${file.name}`);
         snippets.push(JSON.parse(content));
       }
     }
-    
+
     return snippets;
   } catch (error) {
     console.error("Error loading snippets:", error);
