@@ -88,7 +88,7 @@ export default function Settings() {
 
   useEffect(() => {
     (async () => {
-      // 1) Load basic app/system info
+      // Load basic app/system info
       setAppDirectory(await tauriPath.appDataDir());
 
       const platform = await os.platform();
@@ -100,13 +100,13 @@ export default function Settings() {
       setAppVersion(await app.getVersion());
       setTauriVersion(await app.getTauriVersion());
 
-      // 2) Load settings
+      // Load settings
       const settings = await loadSettings();
       if (settings?.firstStartup) {
         setFirstStartup(new Date(settings.firstStartup).toLocaleString());
       }
 
-      // 3) Load collections from settings
+      // Load collections from settings
       const allCollections = await CollectionsService.getCollections();
       console.log("Loaded collections:", allCollections);
       setCollections(allCollections);
@@ -319,6 +319,7 @@ export default function Settings() {
         return (
           <Section title="Telemetry" description="Opt in or out of telemetry settings.">
             <h2>This section lets me know data about how many users are using the app and stuff.</h2>
+            <p>Don't worry, no telemetry is implemented yet!</p>
           </Section>
         );
 

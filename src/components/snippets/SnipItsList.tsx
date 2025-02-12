@@ -288,7 +288,7 @@ export const SnipItsList = ({
                     <label className="flex items-center space-x-2 cursor-pointer">
                       <Checkbox
                         checked={starredFirst}
-                        onCheckedChange={(val) => {
+                        onCheckedChange={(val: boolean) => {
                           setStarredFirst(Boolean(val));
                         }}
                       />
@@ -340,7 +340,7 @@ export const SnipItsList = ({
         {/* Snippet cards list */}
         <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hidden">
           {finalSnippets
-            .slice() // optional: to avoid mutating the original array
+            .slice()
             .sort((a, b) => sortSnippets(a, b, sortOption, starredFirst))
             .map((snippet) => (
               <SnipItCard
