@@ -97,13 +97,30 @@ async function initializeSettings(snipitDir: string, osDetails: string) {
     const settingsExists = await fs.exists(settingsPath);
     if (!settingsExists) {
       console.log("⚠️ settings.json not found. Creating with default values...");
+    
       const initialSettings = {
         os: osDetails,
         firstStartup: new Date().toISOString(),
         collections: [],
+        telemetry: {
+          usage: true,
+          errorReports: false,
+          // add more toggles heres
+        },
       };
       await fs.writeTextFile(settingsPath, JSON.stringify(initialSettings, null, 2));
       console.log("✅ settings.json created successfully.");
+    } else {
+      // If settings.json exists, ensure telemetry is not missing
+      const existingSettings = JSON.parse(await fs.readTextFile(settingsPath));
+      if (!("telemetry" in existingSettings)) {
+        existingSettings.telemetry = {
+          usage: true,
+          errorReports: false,
+        };
+        await fs.writeTextFile(settingsPath, JSON.stringify(existingSettings, null, 2));
+        console.log("✅ Added default telemetry settings.");
+      }
     }
 
     // Ensure collections exist in settings
@@ -136,4 +153,6 @@ async function initializeSettings(snipitDir: string, osDetails: string) {
     console.error("❌ Error initializing settings.json:", error);
     throw error;
   }
+
+  
 }
