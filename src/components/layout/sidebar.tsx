@@ -34,7 +34,6 @@ function renderNavItems(items: NavItem[], setActivePage: (page: PageType) => voi
     if (navItem.type === "separator") {
       return <Separator key={`sep-${index}`} className="my-2 w-full" />;
     }
-    // It's a nav item
     const { icon: Icon, page, label } = navItem;
 
     return (

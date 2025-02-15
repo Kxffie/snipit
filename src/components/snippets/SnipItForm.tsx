@@ -8,15 +8,20 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getSnippetById, saveSnippet, Snippet } from "@/lib/SnipItService";
+import { Collection } from "@/lib/CollectionsService";
 
-export const SnipItForm = ({
-  snippetId,
-  onClose,
-  onSave,
-}: {
+interface SnipItFormProps {
   snippetId?: string;
   onClose: () => void;
   onSave: () => void;
+  selectedCollection?: Collection | null;
+}
+
+export const SnipItForm: React.FC<SnipItFormProps> = ({
+  snippetId,
+  onClose,
+  onSave,
+  selectedCollection,
 }) => {
   const { toast } = useToast();
   const [title, setTitle] = useState("");
@@ -25,17 +30,14 @@ export const SnipItForm = ({
   const [language, setLanguage] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
-
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    console.log("Selected collection in SnipItForm:", selectedCollection);
     const loadSnippet = async () => {
       if (!snippetId) return;
-  
       try {
         const snippet = await getSnippetById(snippetId);
-  
-        // Ensure snippet exists and has required fields
         if (!snippet || !snippet.title || !snippet.code) {
           toast({
             title: "Error",
@@ -44,7 +46,6 @@ export const SnipItForm = ({
           });
           return;
         }
-  
         setTitle(snippet.title);
         setDescription(snippet.description ?? "");
         setCode(snippet.code);
@@ -59,15 +60,12 @@ export const SnipItForm = ({
         });
       }
     };
-  
     loadSnippet();
   }, [snippetId]);
-  
 
   useEffect(() => {
     if (code && !snippetId) {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
       typingTimeoutRef.current = setTimeout(() => {
         const detectedLanguage = langDetector(code);
         if (detectedLanguage && detectedLanguage !== language) {
@@ -75,7 +73,6 @@ export const SnipItForm = ({
         }
       }, 3000);
     }
-
     return () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     };
@@ -90,9 +87,18 @@ export const SnipItForm = ({
       });
       return;
     }
-
+    if (!selectedCollection?.path) {
+      toast({
+        title: "Error",
+        description: "No collection selected. Please select a collection first.",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
-      const id = snippetId || Math.floor(100000000 + Math.random() * 900000000).toString();
+      const id =
+        snippetId ||
+        Math.floor(100000000 + Math.random() * 900000000).toString();
       const finalTags = tags.length > 0 ? tags : ["unlabeled"];
       const snippetData: Snippet = {
         id,
@@ -104,14 +110,14 @@ export const SnipItForm = ({
         starred: false,
         date: new Date().toISOString(),
       };
-
-      const success = await saveSnippet(snippetData);
+      const success = await saveSnippet(snippetData, selectedCollection.path);
       if (success) {
         toast({
           title: "Success",
-          description: snippetId ? "SnipIt updated successfully." : "SnipIt saved successfully.",
+          description: snippetId
+            ? "SnipIt updated successfully."
+            : "SnipIt saved successfully.",
         });
-
         onSave();
         onClose();
       } else {
@@ -131,43 +137,51 @@ export const SnipItForm = ({
     <ThemeProvider>
       <div className="h-full w-full flex flex-col bg-background text-foreground">
         <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar for metadata */}
+          {/* Sidebar for snippet details */}
           <aside className="w-64 border-r border-border p-4 text-sm text-muted-foreground">
             <h2 className="text-lg font-semibold text-foreground mb-3">
               {snippetId ? "Edit Snippet" : "New Snippet"}
             </h2>
-
             <Input
               placeholder="Snippet Title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md mb-4"
             />
-
             <Input
               placeholder="Description (optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md mb-4"
             />
-
             <div className="mb-4">
-              <h3 className="text-md font-semibold text-foreground mb-2">Language</h3>
+              <h3 className="text-md font-semibold text-foreground mb-2">
+                Language
+              </h3>
               <Input
                 placeholder="Language"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
                 className="w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md"
               />
-              {!snippetId && <span className="text-xs text-muted-foreground">Auto-detects as you type (Editable)</span>}
+              {!snippetId && (
+                <span className="text-xs text-muted-foreground">
+                  Auto-detects as you type (Editable)
+                </span>
+              )}
             </div>
-
             <h3 className="text-md font-semibold text-foreground mb-2">Tags</h3>
             <div className="flex flex-wrap gap-2 mb-2">
               {tags.map((tag, index) => (
-                <Badge key={index} className="px-3 py-1 bg-secondary text-secondary-foreground rounded-md text-xs">
+                <Badge
+                  key={index}
+                  className="px-3 py-1 bg-secondary text-secondary-foreground rounded-md text-xs"
+                >
                   {tag}
-                  <button onClick={() => setTags(tags.filter((t) => t !== tag))} className="ml-1 text-red-500 hover:text-red-700">
+                  <button
+                    onClick={() => setTags(tags.filter((t) => t !== tag))}
+                    className="ml-1 text-red-500 hover:text-red-700"
+                  >
                     ×
                   </button>
                 </Badge>
@@ -191,7 +205,6 @@ export const SnipItForm = ({
               className="w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md"
             />
           </aside>
-
           {/* Code editor */}
           <div className="flex-1 overflow-auto hide-scrollbar">
             <MonacoEditor
@@ -212,15 +225,19 @@ export const SnipItForm = ({
             />
           </div>
         </div>
-
         {/* Action buttons */}
         <div className="absolute bottom-6 right-6 flex gap-3">
-          <Button className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-md" onClick={handleSaveSnippet}>
+          <Button
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-md"
+            onClick={handleSaveSnippet}
+          >
             <Save className="w-5 h-5" />
             <span>Save</span>
           </Button>
-
-          <Button className="flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-md" onClick={onClose}>
+          <Button
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-md"
+            onClick={onClose}
+          >
             <X className="w-5 h-5" />
             <span>Cancel</span>
           </Button>

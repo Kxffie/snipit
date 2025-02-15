@@ -12,17 +12,12 @@ export type Snippet = {
   date: string;
 };
 
-
 /**
- * Fetch all snippets from the collection directory.
+ * Retrieve all snippets from the collection directory.
  */
-export const loadSnippets = async (
-  overridePath?: string
-): Promise<Snippet[]> => {
+export const loadSnippets = async (overridePath?: string): Promise<Snippet[]> => {
   try {
-    // If no override path is given, read from settings
     const settings = await loadSettings();
-    // If overridePath is undefined, fall back to settings.collectionPath
     const collectionPath = overridePath ?? settings.collectionPath;
 
     if (!collectionPath) {
@@ -30,7 +25,6 @@ export const loadSnippets = async (
       return [];
     }
 
-    // Load all .json snippet files from that folder
     const files = await fs.readDir(collectionPath);
     const snippets: Snippet[] = [];
 
@@ -48,9 +42,8 @@ export const loadSnippets = async (
   }
 };
 
-
 /**
- * Fetch a single snippet by ID.
+ * Retrieve a single snippet by its ID.
  */
 export const getSnippetById = async (id: string): Promise<Snippet | null> => {
   try {
@@ -64,14 +57,20 @@ export const getSnippetById = async (id: string): Promise<Snippet | null> => {
   }
 };
 
-
 /**
  * Save or update a snippet.
  */
-export const saveSnippet = async (snippet: Snippet): Promise<boolean> => {
+export const saveSnippet = async (snippet: Snippet, overridePath?: string): Promise<boolean> => {
   try {
     const settings = await loadSettings();
-    const filePath = `${settings.collectionPath}/${snippet.id}.json`;
+    const collectionPath = overridePath ?? settings.collectionPath;
+
+    if (!collectionPath) {
+      console.error("No collection path provided!");
+      return false;
+    }
+
+    const filePath = `${collectionPath}/${snippet.id}.json`;
     await fs.writeTextFile(filePath, JSON.stringify(snippet, null, 2));
     return true;
   } catch (error) {
@@ -80,9 +79,8 @@ export const saveSnippet = async (snippet: Snippet): Promise<boolean> => {
   }
 };
 
-
 /**
- * Delete a snippet by ID.
+ * Remove a snippet by its ID.
  */
 export const deleteSnippet = async (id: string): Promise<boolean> => {
   try {
@@ -96,9 +94,8 @@ export const deleteSnippet = async (id: string): Promise<boolean> => {
   }
 };
 
-
 /**
- * Toggle the starred status of a snippet.
+ * Switch the starred status of a snippet.
  */
 export const toggleStarSnippet = async (id: string): Promise<boolean> => {
   try {
@@ -113,46 +110,42 @@ export const toggleStarSnippet = async (id: string): Promise<boolean> => {
   }
 };
 
-
-
 /**
- * Filters snippets based on a structured search query.
- * Supports field-specific searches: title, description, content (code), language, and tags.
+ * Filter snippets based on a structured search query.
+ * Supports field-specific queries: title, description, content (code), language, and tags.
  */
 export const filterSnippetsByQuery = (snippets: Snippet[], query: string): Snippet[] => {
-    if (!query.trim()) return snippets;
-  
-    // Split query into multiple terms (e.g., ["title:React", "content:useState"])
-    const terms = query.toLowerCase().match(/(\w+:"[^"]+"|\w+:\S+|\S+)/g) || [];
-  
-    return snippets.filter((snippet) => {
-      return terms.every((term) => {
-        let [field, value] = term.includes(":") ? term.split(":") : ["all", term];
-        value = value.replace(/^"|"$/g, "").toLowerCase(); // Remove quotes for exact searches
-  
-        switch (field) {
-          case "title":
-            return snippet.title.toLowerCase().includes(value);
-          case "description":
-            return (snippet.description ?? "").toLowerCase().includes(value);
-          case "content":
-            return snippet.code.toLowerCase().includes(value);
-          case "language":
-            return snippet.language.toLowerCase().includes(value);
-          case "tag":
-          case "tags":
-            return snippet.tags.some((tag) => tag.toLowerCase().includes(value));
-          case "all":
-          default:
-            return (
-              snippet.title.toLowerCase().includes(value) ||
-              (snippet.description ?? "").toLowerCase().includes(value) ||
-              snippet.code.toLowerCase().includes(value) ||
-              snippet.language.toLowerCase().includes(value) ||
-              snippet.tags.some((tag) => tag.toLowerCase().includes(value))
-            );
-        }
-      });
-    });
-  };
-  
+  if (!query.trim()) return snippets;
+
+  const terms = query.toLowerCase().match(/(\w+:"[^"]+"|\w+:\S+|\S+)/g) || [];
+
+  return snippets.filter(snippet =>
+    terms.every(term => {
+      let [field, value] = term.includes(":") ? term.split(":") : ["all", term];
+      value = value.replace(/^"|"$/g, "").toLowerCase();
+
+      switch (field) {
+        case "title":
+          return snippet.title.toLowerCase().includes(value);
+        case "description":
+          return (snippet.description ?? "").toLowerCase().includes(value);
+        case "content":
+          return snippet.code.toLowerCase().includes(value);
+        case "language":
+          return snippet.language.toLowerCase().includes(value);
+        case "tag":
+        case "tags":
+          return snippet.tags.some(tag => tag.toLowerCase().includes(value));
+        case "all":
+        default:
+          return (
+            snippet.title.toLowerCase().includes(value) ||
+            (snippet.description ?? "").toLowerCase().includes(value) ||
+            snippet.code.toLowerCase().includes(value) ||
+            snippet.language.toLowerCase().includes(value) ||
+            snippet.tags.some(tag => tag.toLowerCase().includes(value))
+          );
+      }
+    })
+  );
+};

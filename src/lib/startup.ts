@@ -26,7 +26,7 @@ export async function getDeviceInfo() {
 
     console.log(`📌 OS Details: ${osDetails}`);
 
-    // Ensure the correct directory
+    // Verify the correct directory
     const snipitDir = await checkAndCreateDirectory();
 
     // Initialize settings
@@ -51,21 +51,16 @@ async function checkAndCreateDirectory() {
 
   try {
     let baseDir = await path.appDataDir();
-    // Remove any trailing slash, just in case
+    // Remove any trailing slash
     baseDir = baseDir.replace(/[\\/]+$/, "");
 
-    // Log to see exactly what Tauri returns
     console.log("📌 Tauri appDataDir() returned:", baseDir);
 
-    // Grab the last segment of that path
     const lastSegment = baseDir.split(/[/\\]+/).pop()?.toLowerCase();
-
-    // If the last folder name is NOT "com.snipit.dev", then append it
     let snipitDir: string;
     if (lastSegment !== "com.snipit.dev") {
       snipitDir = await path.join(baseDir, "com.snipit.dev");
     } else {
-      // It's already the correct folder
       snipitDir = baseDir;
     }
 
@@ -97,7 +92,6 @@ async function initializeSettings(snipitDir: string, osDetails: string) {
     const settingsExists = await fs.exists(settingsPath);
     if (!settingsExists) {
       console.log("⚠️ settings.json not found. Creating with default values...");
-    
       const initialSettings = {
         os: osDetails,
         firstStartup: new Date().toISOString(),
@@ -105,13 +99,11 @@ async function initializeSettings(snipitDir: string, osDetails: string) {
         telemetry: {
           usage: true,
           errorReports: false,
-          // add more toggles heres
         },
       };
       await fs.writeTextFile(settingsPath, JSON.stringify(initialSettings, null, 2));
       console.log("✅ settings.json created successfully.");
     } else {
-      // If settings.json exists, ensure telemetry is not missing
       const existingSettings = JSON.parse(await fs.readTextFile(settingsPath));
       if (!("telemetry" in existingSettings)) {
         existingSettings.telemetry = {
@@ -123,7 +115,7 @@ async function initializeSettings(snipitDir: string, osDetails: string) {
       }
     }
 
-    // Ensure collections exist in settings
+    // Confirm collections exist in settings
     await CollectionsService.ensureCollectionsExist();
     let collections = await CollectionsService.getCollections();
 
@@ -132,14 +124,14 @@ async function initializeSettings(snipitDir: string, osDetails: string) {
       collections = [];
     }
 
-    // Ensure the default "snippets" collection exists
+    // Check that the default "snippets" collection exists
     const defaultCollection: Collection = {
       id: "default",
       path: defaultCollectionPath,
       name: "Default Collection",
     };
 
-    if (!collections.some((col) => col.id === defaultCollection.id)) {
+    if (!collections.some(col => col.id === defaultCollection.id)) {
       console.log("⚠️ Default collection not found. Adding...");
       await fs.createDir(defaultCollectionPath, { recursive: true });
       await CollectionsService.addCollection(defaultCollection);
@@ -153,6 +145,4 @@ async function initializeSettings(snipitDir: string, osDetails: string) {
     console.error("❌ Error initializing settings.json:", error);
     throw error;
   }
-
-  
 }
