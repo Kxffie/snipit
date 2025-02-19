@@ -3,7 +3,7 @@ import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Copy, Pencil, Trash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useSnippetMutations, Snippet } from "@/lib/SnipItService";
+import { useSnippetMutations } from "@/lib/SnipItService";
 
 type SnipItViewProps = {
   snippet: any;
@@ -21,7 +21,7 @@ export const SnipItView = ({
   collectionPath,
 }: SnipItViewProps) => {
   const { toast } = useToast();
-  const { toggleStarMutation, deleteMutation } = useSnippetMutations();
+  const { deleteMutation } = useSnippetMutations();
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(snippet.code);

@@ -123,7 +123,7 @@ export const SnipItsList = ({
     );
   };
 
-  const toggleStar = (id: string, newStarred: boolean) => {
+  const toggleStar = () => {
     // After toggling, just re-fetch to refresh the list
     refetchSnippets();
   };
