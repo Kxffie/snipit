@@ -1,17 +1,26 @@
 import { os, fs, path } from "@tauri-apps/api";
-import { CollectionsService, Collection } from "@/lib/CollectionsService";
+import { useQuery } from "@tanstack/react-query";
+import { 
+  verifyCollectionsExist, 
+  getCollections, 
+  addCollection, 
+  Collection 
+} from "@/lib/CollectionsService";
 
-export async function getDeviceInfo() {
-  console.log("🔹 Starting device info check...");
+export type DeviceInfo = {
+  platform: string;
+  version: string;
+  arch: string;
+  osDetails: string;
+};
+
+export async function getDeviceInfo(): Promise<DeviceInfo> {
+  console.log("Starting device info check...");
 
   try {
     const platform = await os.platform();
     const version = await os.version();
     const arch = await os.arch();
-
-    console.log(`✅ Platform detected: ${platform}`);
-    console.log(`✅ OS Version: ${version}`);
-    console.log(`✅ Architecture: ${arch}`);
 
     let osDetails = "";
     if (platform === "darwin") {
@@ -24,37 +33,26 @@ export async function getDeviceInfo() {
       osDetails = `Unknown OS: ${platform} ${version}`;
     }
 
-    console.log(`📌 OS Details: ${osDetails}`);
-
-    // Verify the correct directory
+    // Verify and create directory
     const snipitDir = await checkAndCreateDirectory();
-
-    // Initialize settings
+    // Initialize settings with default values if needed
     await initializeSettings(snipitDir, osDetails);
 
-    console.log("✅ Device info check completed successfully.");
-
-    return {
-      platform,
-      version,
-      arch,
-      osDetails,
-    };
+    console.log("Device info check completed successfully.");
+    return { platform, version, arch, osDetails };
   } catch (error) {
-    console.error("❌ Device info check failed:", error);
+    console.error("Device info check failed:", error);
     throw error;
   }
 }
 
-async function checkAndCreateDirectory() {
-  console.log("🔹 Checking for 'com.snipit.dev' directory...");
+async function checkAndCreateDirectory(): Promise<string> {
+  console.log("Checking for 'com.snipit.dev' directory...");
 
   try {
     let baseDir = await path.appDataDir();
-    // Remove any trailing slash
     baseDir = baseDir.replace(/[\\/]+$/, "");
-
-    console.log("📌 Tauri appDataDir() returned:", baseDir);
+    console.log("Tauri appDataDir() returned:", baseDir);
 
     const lastSegment = baseDir.split(/[/\\]+/).pop()?.toLowerCase();
     let snipitDir: string;
@@ -64,26 +62,25 @@ async function checkAndCreateDirectory() {
       snipitDir = baseDir;
     }
 
-    console.log("📌 Using SnipIt Directory Path:", snipitDir);
-
+    console.log("Using SnipIt Directory Path:", snipitDir);
     const exists = await fs.exists(snipitDir);
     if (!exists) {
-      console.log("⚠️ 'com.snipit.dev' directory not found. Creating it now...");
+      console.log("'com.snipit.dev' directory not found. Creating it now...");
       await fs.createDir(snipitDir, { recursive: true });
-      console.log("✅ 'com.snipit.dev' directory created successfully.");
+      console.log("'com.snipit.dev' directory created successfully.");
     } else {
-      console.log("✅ 'com.snipit.dev' directory already exists.");
+      console.log("'com.snipit.dev' directory already exists.");
     }
 
     return snipitDir;
   } catch (error) {
-    console.error("❌ Error while checking/creating 'com.snipit.dev' directory:", error);
+    console.error("Error checking/creating 'com.snipit.dev' directory:", error);
     throw error;
   }
 }
 
-async function initializeSettings(snipitDir: string, osDetails: string) {
-  console.log("🔹 Initializing settings.json...");
+async function initializeSettings(snipitDir: string, osDetails: string): Promise<void> {
+  console.log("Initializing settings.json...");
 
   const settingsPath = await path.join(snipitDir, "settings.json");
   const defaultCollectionPath = await path.join(snipitDir, "snippets");
@@ -91,10 +88,11 @@ async function initializeSettings(snipitDir: string, osDetails: string) {
   try {
     const settingsExists = await fs.exists(settingsPath);
     if (!settingsExists) {
-      console.log("⚠️ settings.json not found. Creating with default values...");
+      console.log("settings.json not found. Creating with default values...");
       const initialSettings = {
         os: osDetails,
         firstStartup: new Date().toISOString(),
+        collectionPath: defaultCollectionPath, // <-- Set default collection path here!
         collections: [],
         telemetry: {
           usage: true,
@@ -102,47 +100,62 @@ async function initializeSettings(snipitDir: string, osDetails: string) {
         },
       };
       await fs.writeTextFile(settingsPath, JSON.stringify(initialSettings, null, 2));
-      console.log("✅ settings.json created successfully.");
+      console.log("settings.json created successfully.");
     } else {
       const existingSettings = JSON.parse(await fs.readTextFile(settingsPath));
+      let updated = false;
+      if (!existingSettings.collectionPath) {
+        existingSettings.collectionPath = defaultCollectionPath;
+        console.log("Added default collectionPath to settings.");
+        updated = true;
+      }
       if (!("telemetry" in existingSettings)) {
         existingSettings.telemetry = {
           usage: true,
           errorReports: false,
         };
+        console.log("Added default telemetry settings.");
+        updated = true;
+      }
+      if (updated) {
         await fs.writeTextFile(settingsPath, JSON.stringify(existingSettings, null, 2));
-        console.log("✅ Added default telemetry settings.");
       }
     }
 
-    // Confirm collections exist in settings
-    await CollectionsService.ensureCollectionsExist();
-    let collections = await CollectionsService.getCollections();
-
+    // Ensure collections exist in settings.
+    await getCollections(); // or your verify function
+    let collections = await getCollections();
     if (!Array.isArray(collections)) {
-      console.warn("⚠️ collections is not an array. Resetting to an empty array.");
+      console.warn("collections is not an array. Resetting to an empty array.");
       collections = [];
     }
 
-    // Check that the default "snippets" collection exists
     const defaultCollection: Collection = {
       id: "default",
       path: defaultCollectionPath,
       name: "Default Collection",
     };
 
-    if (!collections.some(col => col.id === defaultCollection.id)) {
-      console.log("⚠️ Default collection not found. Adding...");
+    if (!collections.some((col: Collection) => col.id === defaultCollection.id)) {
+      console.log("Default collection not found. Adding...");
       await fs.createDir(defaultCollectionPath, { recursive: true });
-      await CollectionsService.addCollection(defaultCollection);
-      console.log("✅ Default collection added successfully.");
+      await addCollection(defaultCollection);
+      console.log("Default collection added successfully.");
     } else {
-      console.log("✅ Default collection already exists.");
+      console.log("Default collection already exists.");
     }
 
-    console.log("✅ Settings initialization complete.");
+    console.log("Settings initialization complete.");
   } catch (error) {
-    console.error("❌ Error initializing settings.json:", error);
+    console.error("Error initializing settings.json:", error);
     throw error;
   }
+}
+
+// TanStack Query hook for device info
+export function useDeviceInfo() {
+  return useQuery<DeviceInfo>({
+    queryKey: ["deviceInfo"],
+    queryFn: getDeviceInfo,
+  });
 }

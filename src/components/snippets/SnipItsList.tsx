@@ -1,17 +1,41 @@
 import { useState, useEffect, useMemo } from "react";
-import { FileText, X, Search, Sparkles, Folders, Tag, Filter } from "lucide-react";
+import {
+  FileText,
+  X,
+  Search,
+  Sparkles,
+  Folders,
+  Tag,
+  Filter,
+} from "lucide-react";
 
 import { SnipItView } from "./SnipItView";
 import { SnipItForm } from "./SnipItForm";
 import { SnipItCard } from "./SnipItCard";
 
-import { loadSnippets, Snippet } from "@/lib/SnipItService";
-import { CollectionsService, Collection } from "@/lib/CollectionsService";
-import { loadSettings, saveSettings } from "@/db/db";
-import { filterBySide, filterBySearch, sortSnippets, SortOption } from "@/lib/FilterSnippets";
+import {
+  useSnippetsQuery,
+  Snippet,
+  filterBySide,
+  filterBySearch,
+  sortSnippets,
+  SortOption,
+} from "@/lib/SnipItService";
+import { useCollectionsQuery, Collection } from "@/lib/CollectionsService";
 
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { loadSettings, saveSettings } from "@/db/db";
+
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,61 +43,66 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 type Page = "home" | "snipits" | "settings" | "newsnippet" | "view";
 
+type SnipItsListProps = {
+  setActivePage: React.Dispatch<React.SetStateAction<Page>>;
+  selectedCollection: Collection | null;
+  setSelectedCollection: React.Dispatch<React.SetStateAction<Collection | null>>;
+};
+
 export const SnipItsList = ({
   setActivePage,
-}: {
-  setActivePage: React.Dispatch<React.SetStateAction<Page>>;
-}) => {
+  selectedCollection,
+  setSelectedCollection,
+}: SnipItsListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<string[]>([]);
-  const [snippets, setSnippets] = useState<Snippet[]>([]);
-  const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
   const [editingSnippetId, setEditingSnippetId] = useState<string | null>(null);
   const [selectedSnippet, setSelectedSnippet] = useState<Snippet | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>("date-desc");
   const [starredFirst, setStarredFirst] = useState(true);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [isCollectionPopoverOpen, setIsCollectionPopoverOpen] = useState(false);
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
+
+  const {
+    data: collections = [],
+    isLoading: isLoadingCollections,
+  } = useCollectionsQuery();
+
+  const {
+    data: snippets = [],
+    refetch: refetchSnippets,
+    isLoading: isLoadingSnippets,
+  } = useSnippetsQuery(selectedCollection?.path);
 
   useEffect(() => {
-    loadAllData();
-  }, []);
+    async function loadSavedCollection() {
+      const settings = await loadSettings();
+      const savedCollectionId = settings?.selectedCollectionId;
 
-  async function loadAllData() {
-    const settings = await loadSettings();
-    const savedCollectionId = settings?.selectedCollectionId;
-    const cols = await CollectionsService.getCollections();
-    setCollections(cols);
-
-    let defaultCollection: Collection | null = null;
-    if (savedCollectionId) {
-      defaultCollection = cols.find(c => c.id === savedCollectionId) || null;
+      if (collections.length > 0) {
+        let defaultCollection: Collection | null = null;
+        if (savedCollectionId) {
+          defaultCollection =
+            collections.find((c) => c.id === savedCollectionId) || null;
+        }
+        if (!defaultCollection) {
+          defaultCollection = collections[0];
+        }
+        setSelectedCollection(defaultCollection);
+      }
     }
-    if (!defaultCollection && cols.length > 0) {
-      defaultCollection = cols[0];
-    }
-    setSelectedCollection(defaultCollection);
+    loadSavedCollection();
+  }, [collections, setSelectedCollection]);
 
-    if (defaultCollection) {
-      await loadSnippetsData(defaultCollection.path);
-    } else {
-      await loadSnippetsData();
-    }
-  }
-
-  async function loadSnippetsData(collectionPath?: string) {
-    const loadedSnippets = await loadSnippets(collectionPath);
-    setSnippets(loadedSnippets);
-    const languages = Array.from(new Set(loadedSnippets.map(s => s.language)));
-    setAvailableLanguages(languages);
-  }
+  const availableLanguages = useMemo(
+    () => Array.from(new Set(snippets.map((s) => s.language))),
+    [snippets]
+  );
 
   const handleCollectionSelect = async (col: Collection) => {
     setSelectedCollection(col);
     await saveSettings({ selectedCollectionId: col.id });
-    await loadSnippetsData(col.path);
+    refetchSnippets();
     setIsCollectionPopoverOpen(false);
   };
 
@@ -82,54 +111,70 @@ export const SnipItsList = ({
   };
 
   const removeFilter = (filter: string) => {
-    setFilters(prev => prev.filter(f => f !== filter));
+    setFilters((prev) => prev.filter((f) => f !== filter));
   };
 
   const toggleFilter = (filter: string) => {
     const normalized = filter.toLowerCase();
-    setFilters(prev =>
+    setFilters((prev) =>
       prev.includes(normalized)
-        ? prev.filter(f => f !== normalized)
+        ? prev.filter((f) => f !== normalized)
         : [...prev, normalized]
     );
   };
 
   const toggleStar = (id: string, newStarred: boolean) => {
-    setSnippets(prev =>
-      prev.map(s => (s.id === id ? { ...s, starred: newStarred } : s))
-    );
+    // After toggling, just re-fetch to refresh the list
+    refetchSnippets();
   };
 
+  // Define a shared deletion handler. 
+  // 1. Possibly remove the snippet from local state (if you store them).
+  // 2. Re-fetch from server for a fresh list.
+  // 3. If the snippet was open, close it.
+  const handleDeleteSnippet = (id: string) => {
+    refetchSnippets();
+    if (selectedSnippet?.id === id) {
+      setSelectedSnippet(null);
+    }
+  };
+
+  // Filter the loaded snippets
   const sideFiltered = useMemo(
     () => filterBySide(snippets, filters, availableLanguages),
     [snippets, filters, availableLanguages]
   );
-
   const finalSnippets = useMemo(
     () => filterBySearch(sideFiltered, searchQuery),
     [sideFiltered, searchQuery]
   );
 
+  // If editing a snippet, show the edit form
   if (editingSnippetId) {
     return (
       <SnipItForm
         snippetId={editingSnippetId}
         onClose={() => setEditingSnippetId(null)}
-        onSave={() => loadSnippetsData(selectedCollection?.path)}
+        onSave={() => refetchSnippets()}
         selectedCollection={selectedCollection}
       />
     );
   }
 
+  // If a snippet is selected, show the detailed view
   if (selectedSnippet) {
     return (
       <SnipItView
         snippet={selectedSnippet}
         onClose={() => setSelectedSnippet(null)}
+        onDelete={handleDeleteSnippet}
+        onEdit={setEditingSnippetId}
+        collectionPath={selectedCollection?.path}
       />
     );
   }
 
+  // Otherwise, show the main snippet listing
   return (
     <div className="h-full flex">
       <aside className="w-64 p-4 border-r flex flex-col">
@@ -173,7 +218,9 @@ export const SnipItsList = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={filters.includes("unlabeled") ? "secondary" : "ghost"}
+                  variant={
+                    filters.includes("unlabeled") ? "secondary" : "ghost"
+                  }
                   className="w-full justify-start"
                   onClick={() => toggleFilter("unlabeled")}
                 >
@@ -192,12 +239,14 @@ export const SnipItsList = ({
           Tags
         </h3>
         <div className="space-y-2 flex-1 overflow-auto">
-          {availableLanguages.map(language => {
+          {availableLanguages.map((language) => {
             const normalizedLanguage = language.toLowerCase();
             return (
               <Button
                 key={language}
-                variant={filters.includes(normalizedLanguage) ? "secondary" : "ghost"}
+                variant={
+                  filters.includes(normalizedLanguage) ? "secondary" : "ghost"
+                }
                 className="w-full justify-start"
                 onClick={() => toggleFilter(language)}
               >
@@ -211,7 +260,7 @@ export const SnipItsList = ({
         <div className="mt-4">
           <Popover
             open={isCollectionPopoverOpen}
-            onOpenChange={open => setIsCollectionPopoverOpen(open)}
+            onOpenChange={setIsCollectionPopoverOpen}
           >
             <PopoverTrigger asChild>
               <Button variant="outline" className="w-full">
@@ -223,10 +272,16 @@ export const SnipItsList = ({
               sideOffset={8}
               className="p-2 w-full max-h-48 overflow-y-auto"
             >
-              {collections.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No collections found.</p>
+              {isLoadingCollections ? (
+                <p className="text-sm text-muted-foreground">
+                  Loading collections...
+                </p>
+              ) : collections.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No collections found.
+                </p>
               ) : (
-                collections.map(col => (
+                collections.map((col) => (
                   <Button
                     key={col.id}
                     variant="ghost"
@@ -324,7 +379,14 @@ export const SnipItsList = ({
                 <Button
                   className="px-6 py-2 rounded-md"
                   variant="ghost"
-                  onClick={() => setActivePage("newsnippet")}
+                  onClick={() => {
+                    // If no collection is selected, show an error or block
+                    if (!selectedCollection) {
+                      alert("Please select a collection first!");
+                      return;
+                    }
+                    setActivePage("newsnippet");
+                  }}
                 >
                   + New Snippet
                 </Button>
@@ -338,7 +400,7 @@ export const SnipItsList = ({
 
         {filters.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
-            {filters.map(filter => (
+            {filters.map((filter) => (
               <Badge
                 key={filter}
                 className="flex items-center space-x-2 px-3 py-1 bg-secondary text-secondary-foreground"
@@ -354,21 +416,24 @@ export const SnipItsList = ({
         )}
 
         <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hidden">
-          {finalSnippets
-            .slice()
-            .sort((a, b) => sortSnippets(a, b, sortOption, starredFirst))
-            .map(snippet => (
-              <SnipItCard
-                key={snippet.id}
-                snippet={snippet}
-                onEdit={id => setEditingSnippetId(id)}
-                onDelete={id =>
-                  setSnippets(prev => prev.filter(s => s.id !== id))
-                }
-                onSelect={setSelectedSnippet}
-                onToggleStar={toggleStar}
-              />
-            ))}
+          {isLoadingSnippets ? (
+            <p>Loading snippets...</p>
+          ) : (
+            finalSnippets
+              .slice()
+              .sort((a, b) => sortSnippets(a, b, sortOption, starredFirst))
+              .map((snippet) => (
+                <SnipItCard
+                  key={snippet.id}
+                  snippet={snippet}
+                  onEdit={(id) => setEditingSnippetId(id)}
+                  onDelete={handleDeleteSnippet}
+                  onSelect={setSelectedSnippet}
+                  onToggleStar={toggleStar}
+                  collectionPath={selectedCollection?.path}
+                />
+              ))
+          )}
         </div>
       </main>
     </div>

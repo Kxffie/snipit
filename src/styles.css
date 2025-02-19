@@ -132,3 +132,16 @@
 .scrollbar-hidden {
   scrollbar-width: none;
 }
+
+::-webkit-scrollbar {
+  @apply w-2.5 h-2.5;
+ 
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent
+}
+
+::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-border border-[2px] border-transparent border-solid bg-secondary bg-clip-padding;
+}

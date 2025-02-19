@@ -9,6 +9,7 @@ import { Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getSnippetById, saveSnippet, Snippet } from "@/lib/SnipItService";
 import { Collection } from "@/lib/CollectionsService";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface SnipItFormProps {
   snippetId?: string;
@@ -24,6 +25,8 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
   selectedCollection,
 }) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [code, setCode] = useState("");
@@ -32,37 +35,39 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
   const [tagInput, setTagInput] = useState("");
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    console.log("Selected collection in SnipItForm:", selectedCollection);
-    const loadSnippet = async () => {
-      if (!snippetId) return;
-      try {
-        const snippet = await getSnippetById(snippetId);
-        if (!snippet || !snippet.title || !snippet.code) {
-          toast({
-            title: "Error",
-            description: "Invalid snippet: Missing title or code.",
-            variant: "destructive",
-          });
-          return;
-        }
-        setTitle(snippet.title);
-        setDescription(snippet.description ?? "");
-        setCode(snippet.code);
-        setLanguage(snippet.language ?? "");
-        setTags(snippet.tags ?? []);
-      } catch (error) {
-        console.error("Failed to load snippet:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load snippet.",
-          variant: "destructive",
-        });
-      }
-    };
-    loadSnippet();
-  }, [snippetId]);
+  // Define the query key so it is always a tuple of strings.
+  const snippetQueryKey = ["snippet", snippetId || "", selectedCollection?.path || "default"];
 
+  // Use TanStack Query to load snippet data when editing.
+  const { data, error } = useQuery<Snippet | null>({
+    queryKey: snippetQueryKey,
+    queryFn: () => getSnippetById(snippetId!, selectedCollection?.path),
+    enabled: Boolean(snippetId),
+  });
+
+  // When data loads, update local state.
+  useEffect(() => {
+    if (data) {
+      setTitle(data.title);
+      setDescription(data.description ?? "");
+      setCode(data.code);
+      setLanguage(data.language ?? "");
+      setTags(data.tags ?? []);
+    }
+  }, [data]);
+
+  // Handle any errors from the query.
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load snippet.",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+
+  // Auto-detect language when typing (for new snippets only).
   useEffect(() => {
     if (code && !snippetId) {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -76,9 +81,35 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
     return () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     };
-  }, [code]);
+  }, [code, snippetId, language]);
 
-  const handleSaveSnippet = async () => {
+  // Mutation for saving the snippet.
+  const saveMutation = useMutation({
+    mutationFn: (snippetData: Snippet) =>
+      saveSnippet(snippetData, selectedCollection?.path),
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: snippetId
+          ? "SnipIt updated successfully."
+          : "SnipIt saved successfully.",
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["snippets", selectedCollection?.path || ""],
+      });
+      onSave();
+      onClose();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save SnipIt.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveSnippet = () => {
     if (!title || !code) {
       toast({
         title: "Error",
@@ -95,42 +126,21 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
       });
       return;
     }
-    try {
-      const id =
-        snippetId ||
-        Math.floor(100000000 + Math.random() * 900000000).toString();
-      const finalTags = tags.length > 0 ? tags : ["unlabeled"];
-      const snippetData: Snippet = {
-        id,
-        title,
-        description,
-        code,
-        language,
-        tags: finalTags,
-        starred: false,
-        date: new Date().toISOString(),
-      };
-      const success = await saveSnippet(snippetData, selectedCollection.path);
-      if (success) {
-        toast({
-          title: "Success",
-          description: snippetId
-            ? "SnipIt updated successfully."
-            : "SnipIt saved successfully.",
-        });
-        onSave();
-        onClose();
-      } else {
-        throw new Error("Failed to save snippet.");
-      }
-    } catch (error) {
-      console.error("Failed to save SnipIt:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save SnipIt.",
-        variant: "destructive",
-      });
-    }
+    const id =
+      snippetId ||
+      Math.floor(100000000 + Math.random() * 900000000).toString();
+    const finalTags = tags.length > 0 ? tags : ["unlabeled"];
+    const snippetData: Snippet = {
+      id,
+      title,
+      description,
+      code,
+      language,
+      tags: finalTags,
+      starred: false,
+      date: new Date().toISOString(),
+    };
+    saveMutation.mutate(snippetData);
   };
 
   return (
@@ -209,7 +219,7 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
           <div className="flex-1 overflow-auto hide-scrollbar">
             <MonacoEditor
               height="100%"
-              language={language || "plaintext"}
+              language={language ? language.toLowerCase() : "plaintext"}
               theme="vs-dark"
               value={code}
               onChange={(value) => setCode(value || "")}
