@@ -1,7 +1,6 @@
 import { os, fs, path } from "@tauri-apps/api";
 import { useQuery } from "@tanstack/react-query";
 import { 
-  verifyCollectionsExist, 
   getCollections, 
   addCollection, 
   Collection 

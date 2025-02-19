@@ -248,7 +248,7 @@ export default function Settings() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This action cannot be undone. The collection <b>{col.name}</b> will be permanently deleted.
+                            This action cannot be undone. The collection <b>{collectionToDelete?.name}</b> will be permanently deleted.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
