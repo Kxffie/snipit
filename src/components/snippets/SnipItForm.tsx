@@ -10,6 +10,9 @@ import { getSnippetById, saveSnippet, Snippet } from "@/lib/SnipItService";
 import { Collection } from "@/lib/CollectionsService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/tauri";
+import {
+  completeSnippetMetadata, // <-- import the new helper
+} from "@/lib/deepSeekService";
 
 interface SnipItFormProps {
   snippetId?: string;
@@ -33,7 +36,6 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
   const [language, setLanguage] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
   const snippetQueryKey = [
@@ -111,8 +113,7 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
       return;
     }
     const id =
-      snippetId ||
-      Math.floor(100000000 + Math.random() * 900000000).toString();
+      snippetId || Math.floor(100000000 + Math.random() * 900000000).toString();
     const finalTags = tags.length > 0 ? tags : ["unlabeled"];
     const snippetData: Snippet = {
       id,
@@ -127,6 +128,7 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
     saveMutation.mutate(snippetData);
   };
 
+  // New handleCompleteWithAI that delegates to the service function
   const handleCompleteWithAI = async () => {
     if (!code.trim()) {
       toast({
@@ -136,36 +138,17 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
       });
       return;
     }
-  
-    // Retrieve the model selection from localStorage, defaulting to "7b" if not set.
-    const selectedModel = (localStorage.getItem("selectedDeepSeekModel") as "1.5b" | "7b" | null) || "7b";
-    
-    const prompt = `Act as a metadata generator bot for code snippets. You will receive a code snippet and must output a valid JSON object with exactly four keys in this order: "title", "description", "codeLanguage", and "tags". The title must be a brief heading summarizing the snippet’s subject, limited to 60 characters. The description should concisely outline the snippet’s explicit features and components in one sentence and be no longer than 150 characters. The codeLanguage must state the programming language used. The tags should be an alphabetically sorted array containing between 3 and 10 concise, lowercase keywords that capture the snippet’s main explicit concepts, libraries, and functionalities while excluding generic terms and the programming language name. If the snippet is empty, ambiguous, or uses multiple languages, select the primary language when possible; otherwise, return default values and add an "error" key with an appropriate message. Output only the JSON object with these keys, with no additional text, commentary, or extra keys.
 
-Here is the code snippet:
-${code}`;
+    // Pick model from localStorage if set
+    const selectedModel =
+      (localStorage.getItem("selectedDeepSeekModel") as "1.5b" | "7b" | null) ||
+      "7b";
 
     setIsAiLoading(true);
     try {
-      const response: string = await invoke("run_deepseek", { 
-        prompt, 
-        model: selectedModel === "7b" ? "deepseek-r1:7b" : "deepseek-r1:1.5b"
-      });
-      console.log("Raw AI response:", response);
-  
-      const jsonMatch = response.match(/{[\s\S]*}/);
-      if (!jsonMatch) {
-        throw new Error("No JSON found in response");
-      }
-      const jsonString = jsonMatch[0].trim();
-      let result;
-      try {
-        result = JSON.parse(jsonString);
-      } catch (parseErr) {
-        console.error("JSON Parse Error:", parseErr);
-        throw new Error("Failed to parse JSON from AI response");
-      }
-      
+      // Calls our new service function
+      const result = await completeSnippetMetadata(code, selectedModel);
+
       if (result.error) {
         toast({
           title: "AI Error",
@@ -222,13 +205,17 @@ ${code}`;
               placeholder="Snippet Title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className={`w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md mb-4 ${isAiLoading ? "animate-pulse" : ""}`}
+              className={`w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md mb-4 ${
+                isAiLoading ? "animate-pulse" : ""
+              }`}
             />
             <Input
               placeholder="Description (optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className={`w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md mb-4 ${isAiLoading ? "animate-pulse" : ""}`}
+              className={`w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md mb-4 ${
+                isAiLoading ? "animate-pulse" : ""
+              }`}
             />
             <div className="mb-4">
               <h3 className="text-md font-semibold text-foreground mb-2">
@@ -238,7 +225,9 @@ ${code}`;
                 placeholder="Language"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className={`w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md ${isAiLoading ? "animate-pulse" : ""}`}
+                className={`w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md ${
+                  isAiLoading ? "animate-pulse" : ""
+                }`}
               />
             </div>
             <h3 className="text-md font-semibold text-foreground mb-2">Tags</h3>
@@ -327,7 +316,9 @@ ${code}`;
         {isAiLoading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 z-50">
             <Loader2 className="w-12 h-12 text-white animate-spin" />
-            <span className="mt-4 text-white text-lg">Generating metadata, please wait...</span>
+            <span className="mt-4 text-white text-lg">
+              Generating metadata, please wait...
+            </span>
           </div>
         )}
       </div>

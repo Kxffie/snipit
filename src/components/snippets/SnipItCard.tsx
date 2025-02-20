@@ -121,7 +121,8 @@ export const SnipItCard = ({
         </div>
         <CardContent className="bg-background p-3 rounded-md border">
           <SyntaxHighlighter
-            language={snippet.language.toLowerCase()}
+          // check if snippet language is C++, if so use cpp instead, else just use snippet.language.toLowerCase()
+            language={snippet.language === "C++" ? "cpp" : snippet.language.toLowerCase()}
             style={tomorrow}
             showLineNumbers
             customStyle={{
