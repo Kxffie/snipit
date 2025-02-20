@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { useSnippetsQuery } from "@/lib/SnipItService";
 
+
 const rotatingLines = [
   "Your offline code snippet manager",
   "Your unstoppable code library",
@@ -72,7 +73,7 @@ export const Home = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center px-6 py-8">
-      <div className="w-full max-w-3xl bg-background rounded-lg p-8 shadow text-center sm:text-left">
+      <div className="w-full max-w-3xl bg-background rounded-lg p-8 text-center sm:text-left">
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
 

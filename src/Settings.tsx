@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getCollections,
@@ -8,6 +8,7 @@ import {
 } from "@/lib/CollectionsService";
 import { loadSettings } from "@/db/db";
 import { os, app, dialog, path as tauriPath } from "@tauri-apps/api";
+import { invoke } from "@tauri-apps/api/tauri";
 import {
   Cable,
   Plug,
@@ -19,8 +20,11 @@ import {
   Trash,
   X,
   Check,
+  Twitter, 
+  Github, 
+  Youtube, 
+  MessageCircle
 } from "lucide-react";
-
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -44,14 +48,15 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import { platform } from "@tauri-apps/api/os";
 
-// Sidebar options for settings navigation
 type SidebarOption = { type: "item"; name: string; icon: JSX.Element } | { type: "separator" };
 
 const settingsOptions: SidebarOption[] = [
   { type: "item", name: "Themes", icon: <Palette className="w-4 h-4" /> },
   { type: "item", name: "Connections", icon: <Plug className="w-4 h-4" /> },
   { type: "item", name: "Collections", icon: <Container className="w-4 h-4" /> },
+  { type: "item", name: "Network", icon: <Container className="w-4 h-4" /> },
   { type: "separator" },
   { type: "item", name: "About", icon: <Library className="w-4 h-4" /> },
   { type: "item", name: "Telemetry", icon: <Cable className="w-4 h-4" /> },
@@ -94,16 +99,78 @@ export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch collections using TanStack Query.
-  const {
-    data: collections = [],
-    isLoading: isLoadingCollections,
-  } = useQuery<Collection[]>({
+  // DeepSeek & Ollama state
+  const [isOllamaInstalled, setIsOllamaInstalled] = useState(false);
+  const [isDeepSeekInstalled, setIsDeepSeekInstalled] = useState(false);
+  // Store the full model identifier, e.g. "deepseek-r1:7b"
+  const [selectedModel, setSelectedModel] = useState<string>("deepseek-r1:7b");
+  // List of downloaded models from Ollama's model directory.
+  const [downloadedModels, setDownloadedModels] = useState<string[]>([]);
+
+  // Check for Ollama and DeepSeek at startup.
+  useEffect(() => {
+    invoke<boolean>("check_ollama")
+      .then((res) => setIsOllamaInstalled(res))
+      .catch((err) => {
+        console.error(err);
+        setIsOllamaInstalled(false);
+      });
+    invoke<boolean>("check_deepseek")
+      .then((res) => setIsDeepSeekInstalled(res))
+      .catch((err) => {
+        console.error(err);
+        setIsDeepSeekInstalled(false);
+      });
+  }, []);
+
+  // Query for downloaded DeepSeek models.
+  useEffect(() => {
+    invoke<string[]>("list_deepseek_models")
+      .then((models) => {
+        console.log("Downloaded models:", models);
+        setDownloadedModels(models);
+        if (models.length > 0 && !models.includes(selectedModel)) {
+          setSelectedModel(models[0]);
+          localStorage.setItem("selectedDeepSeekModel", models[0]);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setDownloadedModels([]);
+      });
+  }, []);
+
+  // When the user selects a model, save it immediately.
+  const handleModelChange = (value: string) => {
+    setSelectedModel(value);
+    localStorage.setItem("selectedDeepSeekModel", value);
+  };
+
+  // Utility: Download URL for Ollama based on platform.
+  const handleDownloadOllama = async () => {
+    try {
+      const currentPlatform = await platform();
+      let downloadUrl = "https://ollama.com/download/";
+      if (currentPlatform === "darwin") {
+        downloadUrl += "mac";
+      } else if (currentPlatform === "win32") {
+        downloadUrl += "windows";
+      } else if (currentPlatform === "linux") {
+        downloadUrl += "linux";
+      } else {
+        downloadUrl += "mac"; // fallback
+      }
+      window.open(downloadUrl, "_blank");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const { data: collections = [], isLoading: isLoadingCollections } = useQuery<Collection[]>({
     queryKey: ["collections"],
     queryFn: getCollections,
   });
 
-  // Fetch system and app info.
   const { data: systemInfo } = useQuery({
     queryKey: ["systemInfo"],
     queryFn: async () => {
@@ -121,7 +188,6 @@ export default function Settings() {
     },
   });
 
-  // Mutation for adding a new collection.
   const addCollectionMutation = useMutation({
     mutationFn: async (collection: { name: string; path: string }) => {
       return await addCollection({
@@ -140,7 +206,6 @@ export default function Settings() {
     },
   });
 
-  // Mutation for removing a collection.
   const deleteCollectionMutation = useMutation({
     mutationFn: async (id: string) => {
       return await removeCollection(id);
@@ -162,16 +227,43 @@ export default function Settings() {
     }
   };
 
-  // Render each section based on the active selection.
+  // Install or run DeepSeek (which auto-installs if missing)
+  const handleInstallDeepSeek = async () => {
+    if (!isOllamaInstalled) {
+      toast({
+        title: "Ollama Missing",
+        description: "Ollama is not installed. Click below to download it.",
+        variant: "destructive",
+      });
+      handleDownloadOllama();
+      return;
+    }
+    try {
+      const command = `ollama run ${selectedModel}`;
+      const res: string = await invoke("run_deepseek", { prompt: command, model: selectedModel });
+      console.log("Installation output:", res);
+      const check = await invoke<boolean>("check_deepseek");
+      setIsDeepSeekInstalled(check);
+      toast({
+        title: "DeepSeek Installed",
+        description: "DeepSeek model has been installed.",
+      });
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "Failed to install DeepSeek.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const renderSection = () => {
     switch (activeSection) {
       case "Themes":
         return (
           <Section title="Themes" description="Customize your theme and appearance settings.">
-            <Select
-              value={theme}
-              onValueChange={(value) => setTheme(value as "light" | "dark" | "system")}
-            >
+            <Select value={theme} onValueChange={(value) => setTheme(value as "light" | "dark" | "system")}>
               <SelectTrigger className="w-64">
                 <SelectValue placeholder="Select Theme" />
               </SelectTrigger>
@@ -184,11 +276,102 @@ export default function Settings() {
           </Section>
         );
 
-
       case "Connections":
         return (
           <Section title="Connections" description="Manage API integrations, database connections, and more.">
-            <h2>This section is currently under development.</h2>
+            <div className="space-y-4">
+              <div className="border p-4 rounded-md">
+                <h3 className="text-lg font-semibold mb-2">DeepSeek Integration</h3>
+                {isOllamaInstalled ? (
+                  isDeepSeekInstalled ? (
+                    <div className="space-y-2">
+                      <p className="text-sm">
+                        DeepSeek is installed. Select one of the downloaded models:
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">Model:</span>
+                        <Select
+                          value={selectedModel}
+                          onValueChange={(value) => handleModelChange(value)}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="Select Model" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {downloadedModels.length > 0 ? (
+                              downloadedModels.map((model) => (
+                                <SelectItem key={model} value={model}>
+                                  {model}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <>
+                                <SelectItem value="deepseek-r1:1.5b">DeepSeek r1:1.5b</SelectItem>
+                                <SelectItem value="deepseek-r1:7b">DeepSeek r1:7b</SelectItem>
+                              </>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm text-red-500">
+                        DeepSeek is not installed.
+                      </p>
+                      <p className="text-xs">
+                        To install, ensure Ollama is installed first. Then click the button below.
+                      </p>
+                      <Button variant="outline" onClick={handleInstallDeepSeek}>
+                        Install DeepSeek
+                      </Button>
+                      <p className="text-xs mt-2">
+                        If Ollama is missing, download it:
+                      </p>
+                      <Button variant="outline" onClick={handleDownloadOllama}>
+                        Download Ollama
+                      </Button>
+                    </div>
+                  )
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-red-500">
+                      Ollama is not installed.
+                    </p>
+                    <p className="text-xs">
+                      Please download Ollama:
+                    </p>
+                    <Button variant="outline" onClick={handleDownloadOllama}>
+                      Download Ollama
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Section>
+        );
+
+      case "Network":
+        return (
+          <Section title="Networks" description="Connections">
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+              <Button variant="outline" className="flex items-center justify-center gap-2 p-4" onClick={() => console.log("Discord clicked")}>
+                <MessageCircle className="w-6 h-6" />
+                <span>Discord</span>
+              </Button>
+              <Button variant="outline" className="flex items-center justify-center gap-2 p-4" onClick={() => console.log("X clicked")}>
+                <Twitter className="w-6 h-6" />
+                <span>X</span>
+              </Button>
+              <Button variant="outline" className="flex items-center justify-center gap-2 p-4" onClick={() => console.log("YouTube clicked")}>
+                <Youtube className="w-6 h-6" />
+                <span>YouTube</span>
+              </Button>
+              <Button variant="outline" className="flex items-center justify-center gap-2 p-4" onClick={() => console.log("GitHub clicked")}>
+                <Github className="w-6 h-6" />
+                <span>GitHub</span>
+              </Button>
+            </div>
           </Section>
         );
 
@@ -268,7 +451,7 @@ export default function Settings() {
 
       case "About":
         return (
-          <Section title="About" description="Information about the app and your device.">
+          <Section title="About" description="Information about the app, your device, and integrations.">
             <div className="space-y-4 w-96">
               <div>
                 <h3 className="text-md font-semibold mb-2 text-muted-foreground">System Information</h3>
@@ -298,6 +481,16 @@ export default function Settings() {
                 <Separator className="my-2" />
                 <p>
                   <strong>App Directory:</strong> {systemInfo?.appDirectory || "Loading..."}
+                </p>
+              </div>
+              <div>
+                <h3 className="text-md font-semibold mb-2 text-muted-foreground">Integrations</h3>
+                <Separator className="my-2" />
+                <p>
+                  <strong>Ollama:</strong> {isOllamaInstalled ? "Installed" : "Not Installed"}
+                </p>
+                <p>
+                  <strong>DeepSeek:</strong> {isDeepSeekInstalled ? `Installed (${selectedModel})` : "Not Installed"}
                 </p>
               </div>
             </div>
@@ -330,48 +523,25 @@ export default function Settings() {
           </Section>
         );
 
-        case "Test":
-          return (
-            <Section title="Test" description="A sandbox for various settings.">
-              <div className="space-y-4">
-                <Button
-                  variant="ghost"
-                  onClick={() =>
-                    toast({ title: "Info", description: "This is an info toast." })
-                  }
-                >
-                  Show Info Toast
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() =>
-                    toast({
-                      title: "Error",
-                      description: "This is an error toast.",
-                      variant: "destructive",
-                    })
-                  }
-                >
-                  Show Error Toast
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    toast({ title: "Success", description: "This is a success toast." })
-                  }
-                >
-                  Show Success Toast
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => console.log("Test button clicked!")}
-                >
-                  Log to Console
-                </Button>
-              </div>
-            </Section>
-          );
-        
+      case "Test":
+        return (
+          <Section title="Test" description="A sandbox for various settings.">
+            <div className="space-y-4">
+              <Button variant="ghost" onClick={() => toast({ title: "Info", description: "This is an info toast." })}>
+                Show Info Toast
+              </Button>
+              <Button variant="destructive" onClick={() => toast({ title: "Error", description: "This is an error toast.", variant: "destructive" })}>
+                Show Error Toast
+              </Button>
+              <Button variant="secondary" onClick={() => toast({ title: "Success", description: "This is a success toast." })}>
+                Show Success Toast
+              </Button>
+              <Button variant="ghost" onClick={() => console.log("Test button clicked!")}>
+                Log to Console
+              </Button>
+            </div>
+          </Section>
+        );
 
       default:
         return null;

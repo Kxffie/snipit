@@ -19,8 +19,6 @@ const queryClient = new QueryClient();
 export const App = () => {
   const [activePage, setActivePage] = useState<Page>("home");
 
-  // Store the currently selected collection here in the App,
-  // so we can pass it to both SnipItsList and SnipItForm.
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
 
   return (

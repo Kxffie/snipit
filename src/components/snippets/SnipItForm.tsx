@@ -3,13 +3,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import MonacoEditor from "@monaco-editor/react";
-import langDetector from "lang-detector";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Save, X } from "lucide-react";
+import { Save, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getSnippetById, saveSnippet, Snippet } from "@/lib/SnipItService";
 import { Collection } from "@/lib/CollectionsService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { invoke } from "@tauri-apps/api/tauri";
 
 interface SnipItFormProps {
   snippetId?: string;
@@ -34,18 +34,20 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
-  // Define the query key so it is always a tuple of strings.
-  const snippetQueryKey = ["snippet", snippetId || "", selectedCollection?.path || "default"];
+  const snippetQueryKey = [
+    "snippet",
+    snippetId || "",
+    selectedCollection?.path || "default",
+  ];
 
-  // Use TanStack Query to load snippet data when editing.
   const { data, error } = useQuery<Snippet | null>({
     queryKey: snippetQueryKey,
     queryFn: () => getSnippetById(snippetId!, selectedCollection?.path),
     enabled: Boolean(snippetId),
   });
 
-  // When data loads, update local state.
   useEffect(() => {
     if (data) {
       setTitle(data.title);
@@ -56,7 +58,6 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
     }
   }, [data]);
 
-  // Handle any errors from the query.
   useEffect(() => {
     if (error) {
       toast({
@@ -67,23 +68,6 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
     }
   }, [error, toast]);
 
-  // Auto-detect language when typing (for new snippets only).
-  useEffect(() => {
-    if (code && !snippetId) {
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = setTimeout(() => {
-        const detectedLanguage = langDetector(code);
-        if (detectedLanguage && detectedLanguage !== language) {
-          setLanguage(detectedLanguage);
-        }
-      }, 3000);
-    }
-    return () => {
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    };
-  }, [code, snippetId, language]);
-
-  // Mutation for saving the snippet.
   const saveMutation = useMutation({
     mutationFn: (snippetData: Snippet) =>
       saveSnippet(snippetData, selectedCollection?.path),
@@ -143,9 +127,91 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
     saveMutation.mutate(snippetData);
   };
 
+  const handleCompleteWithAI = async () => {
+    if (!code.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a code snippet first.",
+        variant: "destructive",
+      });
+      return;
+    }
+  
+    // Retrieve the model selection from localStorage, defaulting to "7b" if not set.
+    const selectedModel = (localStorage.getItem("selectedDeepSeekModel") as "1.5b" | "7b" | null) || "7b";
+    
+    const prompt = `Act as a metadata generator bot for code snippets. You will receive a code snippet and must output a valid JSON object with exactly four keys in this order: "title", "description", "codeLanguage", and "tags". The title must be a brief heading summarizing the snippet’s subject, limited to 60 characters. The description should concisely outline the snippet’s explicit features and components in one sentence and be no longer than 150 characters. The codeLanguage must state the programming language used. The tags should be an alphabetically sorted array containing between 3 and 10 concise, lowercase keywords that capture the snippet’s main explicit concepts, libraries, and functionalities while excluding generic terms and the programming language name. If the snippet is empty, ambiguous, or uses multiple languages, select the primary language when possible; otherwise, return default values and add an "error" key with an appropriate message. Output only the JSON object with these keys, with no additional text, commentary, or extra keys.
+
+Here is the code snippet:
+${code}`;
+
+    setIsAiLoading(true);
+    try {
+      const response: string = await invoke("run_deepseek", { 
+        prompt, 
+        model: selectedModel === "7b" ? "deepseek-r1:7b" : "deepseek-r1:1.5b"
+      });
+      console.log("Raw AI response:", response);
+  
+      const jsonMatch = response.match(/{[\s\S]*}/);
+      if (!jsonMatch) {
+        throw new Error("No JSON found in response");
+      }
+      const jsonString = jsonMatch[0].trim();
+      let result;
+      try {
+        result = JSON.parse(jsonString);
+      } catch (parseErr) {
+        console.error("JSON Parse Error:", parseErr);
+        throw new Error("Failed to parse JSON from AI response");
+      }
+      
+      if (result.error) {
+        toast({
+          title: "AI Error",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else {
+        setTitle(result.title || "");
+        setDescription(result.description || "");
+        setLanguage(result.codeLanguage || "");
+        setTags(result.tags || []);
+        toast({
+          title: "AI Completed",
+          description: "Fields have been auto-filled.",
+        });
+        console.log("Parsed AI result:", result);
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to complete with AI.",
+        variant: "destructive",
+      });
+      console.error("handleCompleteWithAI error:", err);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
+  // Check DeepSeek status on mount.
+  const [isDeepSeekInstalled, setIsDeepSeekInstalled] = useState(false);
+  useEffect(() => {
+    invoke<boolean>("check_deepseek")
+      .then((res) => {
+        console.log("DeepSeek installed check:", res);
+        setIsDeepSeekInstalled(res);
+      })
+      .catch((err) => {
+        console.error(err);
+        setIsDeepSeekInstalled(false);
+      });
+  }, []);
+
   return (
     <ThemeProvider>
-      <div className="h-full w-full flex flex-col bg-background text-foreground">
+      <div className="relative h-full w-full flex flex-col bg-background text-foreground">
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar for snippet details */}
           <aside className="w-64 border-r border-border p-4 text-sm text-muted-foreground">
@@ -156,13 +222,13 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
               placeholder="Snippet Title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md mb-4"
+              className={`w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md mb-4 ${isAiLoading ? "animate-pulse" : ""}`}
             />
             <Input
               placeholder="Description (optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md mb-4"
+              className={`w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md mb-4 ${isAiLoading ? "animate-pulse" : ""}`}
             />
             <div className="mb-4">
               <h3 className="text-md font-semibold text-foreground mb-2">
@@ -172,13 +238,8 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
                 placeholder="Language"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md"
+                className={`w-full text-sm bg-secondary text-secondary-foreground border-none focus:ring-0 focus:outline-none px-3 py-2 rounded-md ${isAiLoading ? "animate-pulse" : ""}`}
               />
-              {!snippetId && (
-                <span className="text-xs text-muted-foreground">
-                  Auto-detects as you type (Editable)
-                </span>
-              )}
             </div>
             <h3 className="text-md font-semibold text-foreground mb-2">Tags</h3>
             <div className="flex flex-wrap gap-2 mb-2">
@@ -237,6 +298,16 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
         </div>
         {/* Action buttons */}
         <div className="absolute bottom-6 right-6 flex gap-3">
+          {isDeepSeekInstalled && (
+            <Button
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+              onClick={handleCompleteWithAI}
+              disabled={isAiLoading}
+            >
+              {isAiLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              <span>Complete with AI</span>
+            </Button>
+          )}
           <Button
             className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-md"
             onClick={handleSaveSnippet}
@@ -252,6 +323,13 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
             <span>Cancel</span>
           </Button>
         </div>
+        {/* Overlay loading indicator */}
+        {isAiLoading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 z-50">
+            <Loader2 className="w-12 h-12 text-white animate-spin" />
+            <span className="mt-4 text-white text-lg">Generating metadata, please wait...</span>
+          </div>
+        )}
       </div>
     </ThemeProvider>
   );
