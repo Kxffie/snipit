@@ -8,11 +8,9 @@ import {
   Tag,
   Filter,
 } from "lucide-react";
-
 import { SnipItView } from "./SnipItView";
 import { SnipItForm } from "./SnipItForm";
 import { SnipItCard } from "./SnipItCard";
-
 import {
   useSnippetsQuery,
   Snippet,
@@ -22,9 +20,7 @@ import {
   SortOption,
 } from "@/lib/SnipItService";
 import { useCollectionsQuery, Collection } from "@/lib/CollectionsService";
-
 import { loadSettings, saveSettings } from "@/db/db";
-
 import {
   Tooltip,
   TooltipContent,
@@ -54,6 +50,7 @@ export const SnipItsList = ({
   selectedCollection,
   setSelectedCollection,
 }: SnipItsListProps) => {
+  // Local state for search and filters
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<string[]>([]);
   const [editingSnippetId, setEditingSnippetId] = useState<string | null>(null);
@@ -63,27 +60,23 @@ export const SnipItsList = ({
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [isCollectionPopoverOpen, setIsCollectionPopoverOpen] = useState(false);
 
-  const {
-    data: collections = [],
-    isLoading: isLoadingCollections,
-  } = useCollectionsQuery();
-
+  // Collections and snippets queries
+  const { data: collections = [], isLoading: isLoadingCollections } = useCollectionsQuery();
   const {
     data: snippets = [],
     refetch: refetchSnippets,
     isLoading: isLoadingSnippets,
   } = useSnippetsQuery(selectedCollection?.path);
 
+  // Load saved collection from settings if available.
   useEffect(() => {
     async function loadSavedCollection() {
       const settings = await loadSettings();
       const savedCollectionId = settings?.selectedCollectionId;
-
       if (collections.length > 0) {
         let defaultCollection: Collection | null = null;
         if (savedCollectionId) {
-          defaultCollection =
-            collections.find((c) => c.id === savedCollectionId) || null;
+          defaultCollection = collections.find((c) => c.id === savedCollectionId) || null;
         }
         if (!defaultCollection) {
           defaultCollection = collections[0];
@@ -94,10 +87,14 @@ export const SnipItsList = ({
     loadSavedCollection();
   }, [collections, setSelectedCollection]);
 
-  const availableLanguages = useMemo(
-    () => Array.from(new Set(snippets.map((s) => s.language))),
-    [snippets]
-  );
+  // Compute available frameworks and languages from snippets.
+  const availableFrameworks = useMemo(() => {
+    return Array.from(new Set(snippets.map((s) => (s as any).framework).filter(Boolean)));
+  }, [snippets]);
+
+  const availableLanguages = useMemo(() => {
+    return Array.from(new Set(snippets.map((s) => s.language).filter(Boolean)));
+  }, [snippets]);
 
   const handleCollectionSelect = async (col: Collection) => {
     setSelectedCollection(col);
@@ -124,14 +121,10 @@ export const SnipItsList = ({
   };
 
   const toggleStar = () => {
-    // After toggling, just re-fetch to refresh the list
+    // Simply refetch snippets for now after a star toggle.
     refetchSnippets();
   };
 
-  // Define a shared deletion handler. 
-  // 1. Possibly remove the snippet from local state (if you store them).
-  // 2. Re-fetch from server for a fresh list.
-  // 3. If the snippet was open, close it.
   const handleDeleteSnippet = (id: string) => {
     refetchSnippets();
     if (selectedSnippet?.id === id) {
@@ -139,17 +132,16 @@ export const SnipItsList = ({
     }
   };
 
-  // Filter the loaded snippets
-  const sideFiltered = useMemo(
-    () => filterBySide(snippets, filters, availableLanguages),
-    [snippets, filters, availableLanguages]
-  );
-  const finalSnippets = useMemo(
-    () => filterBySearch(sideFiltered, searchQuery),
-    [sideFiltered, searchQuery]
-  );
+  // Filtering: first, filter by side (favorites, starred, unlabeled, etc.)
+  const sideFiltered = useMemo(() => {
+    return filterBySide(snippets, filters, availableLanguages);
+  }, [snippets, filters, availableLanguages]);
 
-  // If editing a snippet, show the edit form
+  // Then, filter by search query.
+  const finalSnippets = useMemo(() => {
+    return filterBySearch(sideFiltered, searchQuery);
+  }, [sideFiltered, searchQuery]);
+
   if (editingSnippetId) {
     return (
       <SnipItForm
@@ -161,7 +153,6 @@ export const SnipItsList = ({
     );
   }
 
-  // If a snippet is selected, show the detailed view
   if (selectedSnippet) {
     return (
       <SnipItView
@@ -174,9 +165,9 @@ export const SnipItsList = ({
     );
   }
 
-  // Otherwise, show the main snippet listing
   return (
     <div className="h-full flex">
+      {/* Sidebar */}
       <aside className="w-64 p-4 border-r flex flex-col">
         <h3 className="text-md font-semibold mb-2 text-muted-foreground">
           Favorites
@@ -198,7 +189,6 @@ export const SnipItsList = ({
                 <p>Show all snippets</p>
               </TooltipContent>
             </Tooltip>
-
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -214,13 +204,10 @@ export const SnipItsList = ({
                 <p>Show starred snippets</p>
               </TooltipContent>
             </Tooltip>
-
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={
-                    filters.includes("unlabeled") ? "secondary" : "ghost"
-                  }
+                  variant={filters.includes("unlabeled") ? "secondary" : "ghost"}
                   className="w-full justify-start"
                   onClick={() => toggleFilter("unlabeled")}
                 >
@@ -235,51 +222,69 @@ export const SnipItsList = ({
           </TooltipProvider>
         </div>
 
+        {/* Frameworks Section */}
         <h3 className="text-md font-semibold mb-2 text-muted-foreground">
-          Tags
+          Frameworks
         </h3>
-        <div className="space-y-2 flex-1 overflow-auto">
-          {availableLanguages.map((language) => {
-            const normalizedLanguage = language.toLowerCase();
-            return (
-              <Button
-                key={language}
-                variant={
-                  filters.includes(normalizedLanguage) ? "secondary" : "ghost"
-                }
-                className="w-full justify-start"
-                onClick={() => toggleFilter(language)}
-              >
-                <FileText className="w-4 h-4" />
-                <span className="ml-2">{language}</span>
-              </Button>
-            );
-          })}
+        <div className="space-y-2 mb-2 overflow-auto">
+          {availableFrameworks.length > 0 ? (
+            availableFrameworks.map((fw) => {
+              const normalizedFW = fw.toLowerCase();
+              return (
+                <Button
+                  key={fw}
+                  variant={filters.includes(normalizedFW) ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => toggleFilter(fw)}
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="ml-2">{fw}</span>
+                </Button>
+              );
+            })
+          ) : (
+            <p className="text-sm text-muted-foreground">No frameworks found</p>
+          )}
         </div>
 
+        {/* Languages Section */}
+        <h3 className="text-md font-semibold mb-2 text-muted-foreground">
+          Languages
+        </h3>
+        <div className="space-y-2 flex-1 overflow-auto">
+          {availableLanguages.length > 0 ? (
+            availableLanguages.map((lang) => {
+              const normalizedLang = lang.toLowerCase();
+              return (
+                <Button
+                  key={lang}
+                  variant={filters.includes(normalizedLang) ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => toggleFilter(lang)}
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="ml-2">{lang}</span>
+                </Button>
+              );
+            })
+          ) : (
+            <p className="text-sm text-muted-foreground">No languages found</p>
+          )}
+        </div>
+
+        {/* Collection Selector */}
         <div className="mt-4">
-          <Popover
-            open={isCollectionPopoverOpen}
-            onOpenChange={setIsCollectionPopoverOpen}
-          >
+          <Popover open={isCollectionPopoverOpen} onOpenChange={setIsCollectionPopoverOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" className="w-full">
                 {selectedCollection?.name ?? "Select Collection"}
               </Button>
             </PopoverTrigger>
-            <PopoverContent
-              side="top"
-              sideOffset={8}
-              className="p-2 w-full max-h-48 overflow-y-auto"
-            >
+            <PopoverContent side="top" sideOffset={8} className="p-2 w-full max-h-48 overflow-y-auto">
               {isLoadingCollections ? (
-                <p className="text-sm text-muted-foreground">
-                  Loading collections...
-                </p>
+                <p className="text-sm text-muted-foreground">Loading collections...</p>
               ) : collections.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No collections found.
-                </p>
+                <p className="text-sm text-muted-foreground">No collections found.</p>
               ) : (
                 collections.map((col) => (
                   <Button
@@ -297,6 +302,7 @@ export const SnipItsList = ({
         </div>
       </aside>
 
+      {/* Main Content Area */}
       <main className="flex-1 p-6 overflow-hidden flex flex-col rounded-tl-lg">
         <TooltipProvider>
           <div className="flex items-center space-x-2 mb-4">
@@ -320,40 +326,16 @@ export const SnipItsList = ({
                   </PopoverTrigger>
                   <PopoverContent className="p-2 w-56 flex flex-col space-y-2 text-left">
                     <div className="flex flex-col space-y-1">
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          setSortOption("date-desc");
-                          setIsPopoverOpen(false);
-                        }}
-                      >
+                      <Button variant="ghost" onClick={() => { setSortOption("date-desc"); setIsPopoverOpen(false); }}>
                         Date: Newest First
                       </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          setSortOption("date-asc");
-                          setIsPopoverOpen(false);
-                        }}
-                      >
+                      <Button variant="ghost" onClick={() => { setSortOption("date-asc"); setIsPopoverOpen(false); }}>
                         Date: Oldest First
                       </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          setSortOption("title-asc");
-                          setIsPopoverOpen(false);
-                        }}
-                      >
+                      <Button variant="ghost" onClick={() => { setSortOption("title-asc"); setIsPopoverOpen(false); }}>
                         Title: A → Z
                       </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          setSortOption("title-desc");
-                          setIsPopoverOpen(false);
-                        }}
-                      >
+                      <Button variant="ghost" onClick={() => { setSortOption("title-desc"); setIsPopoverOpen(false); }}>
                         Title: Z → A
                       </Button>
                     </div>
@@ -361,9 +343,7 @@ export const SnipItsList = ({
                     <label className="flex items-center space-x-2 cursor-pointer">
                       <Checkbox
                         checked={starredFirst}
-                        onCheckedChange={(val: boolean) =>
-                          setStarredFirst(Boolean(val))
-                        }
+                        onCheckedChange={(val: boolean) => setStarredFirst(Boolean(val))}
                       />
                       <span>Starred First</span>
                     </label>
@@ -380,7 +360,6 @@ export const SnipItsList = ({
                   className="px-6 py-2 rounded-md"
                   variant="ghost"
                   onClick={() => {
-                    // If no collection is selected, show an error or block
                     if (!selectedCollection) {
                       alert("Please select a collection first!");
                       return;
@@ -406,10 +385,7 @@ export const SnipItsList = ({
                 className="flex items-center space-x-2 px-3 py-1 bg-secondary text-secondary-foreground"
               >
                 <span>{filter}</span>
-                <X
-                  className="w-4 h-4 cursor-pointer"
-                  onClick={() => removeFilter(filter)}
-                />
+                <X className="w-4 h-4 cursor-pointer" onClick={() => removeFilter(filter)} />
               </Badge>
             ))}
           </div>

@@ -8,14 +8,23 @@ export type Snippet = {
   description?: string;
   code: string;
   language: string;
+  framework?: string; // new field
   tags: string[];
   starred: boolean;
   date: string;
+  lastEdited?: string;
+  locks?: {
+    title: boolean;
+    description: boolean;
+    language: boolean;
+    framework: boolean; // new lock for framework
+  };
 };
 
-export type SortOption = "date-desc" | "date-asc" | "title-asc" | "title-desc";
 
-// Service functions
+
+
+export type SortOption = "date-desc" | "date-asc" | "title-asc" | "title-desc";
 
 export const loadSnippets = async (overridePath?: string): Promise<Snippet[]> => {
   try {
@@ -85,7 +94,6 @@ export const deleteSnippet = async (id: string, overridePath?: string): Promise<
     await fs.removeFile(filePath);
     return true;
   } catch (error: any) {
-    // If the error message indicates the file wasn't found, treat it as success.
     if (error?.message && error.message.includes("os error 2")) {
       console.warn(`File not found for snippet ${id}; treating as deleted.`);
       return true;
@@ -141,8 +149,6 @@ export const filterSnippetsByQuery = (snippets: Snippet[], query: string): Snipp
     })
   );
 };
-
-// Filtering functions
 
 export const filterBySide = (
   allSnippets: Snippet[],
@@ -223,8 +229,6 @@ export const sortSnippets = (
   }
 };
 
-// TanStack Query hooks
-
 export const useSnippetsQuery = (overridePath?: string) => {
   return useQuery<Snippet[]>({
     queryKey: ["snippets", overridePath],
@@ -243,7 +247,6 @@ export const useSnippetMutations = () => {
   });
 
   const deleteMutation = useMutation({
-    // Accept an object with both id and overridePath
     mutationFn: ({ id, overridePath }: { id: string; overridePath?: string }) =>
       deleteSnippet(id, overridePath),
     onSuccess: () => {
@@ -251,7 +254,6 @@ export const useSnippetMutations = () => {
     },
   });
 
-  // Modify toggleStarMutation to accept an object with id and overridePath
   const toggleStarMutation = useMutation({
     mutationFn: ({ id, overridePath }: { id: string; overridePath?: string }) =>
       toggleStarSnippet(id, overridePath),

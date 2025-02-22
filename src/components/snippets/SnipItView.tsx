@@ -31,7 +31,6 @@ export const SnipItView = ({
     });
   };
 
-
   const handleDelete = () => {
     deleteMutation.mutate(
       { id: snippet.id, overridePath: collectionPath },
@@ -65,6 +64,9 @@ export const SnipItView = ({
 
           <p className="font-bold text-foreground mb-1">Language</p>
           <p className="mb-4">{snippet.language}</p>
+
+          <p className="font-bold text-foreground mb-1">Framework</p>
+          <p className="mb-4">{snippet.framework || "N/A"}</p>
 
           <p className="font-bold text-foreground mb-1">Created At</p>
           <p className="mb-4">{new Date(snippet.date).toLocaleString()}</p>
@@ -104,38 +106,38 @@ export const SnipItView = ({
 
       {/* Floating bottom-right buttons */}
       <div className="absolute bottom-6 right-6 flex space-x-2">
-          <Button
-            variant="ghost"
-            className="flex items-center gap-2 px-4 py-3 bg-secondary text-primary rounded-md"
-            onClick={onClose}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+        <Button
+          variant="ghost"
+          className="flex items-center gap-2 px-4 py-3 bg-secondary text-primary rounded-md"
+          onClick={onClose}
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
 
-          <Button
-            variant="ghost"
-            className="flex items-center justify-center gap-1 px-4 py-3 bg-secondary text-primary rounded-md"
-            onClick={handleCopyCode}
-          >
-            <Copy className="w-5 h-5" />
-          </Button>
+        <Button
+          variant="ghost"
+          className="flex items-center justify-center gap-1 px-4 py-3 bg-secondary text-primary rounded-md"
+          onClick={handleCopyCode}
+        >
+          <Copy className="w-5 h-5" />
+        </Button>
 
-          <Button
-            variant="ghost"
-            className="flex items-center justify-center gap-1 px-4 py-3 bg-secondary text-primary rounded-md"
-            onClick={() => onEdit(snippet.id)}
-          >
-            <Pencil className="w-5 h-5" />
-          </Button>
+        <Button
+          variant="ghost"
+          className="flex items-center justify-center gap-1 px-4 py-3 bg-secondary text-primary rounded-md"
+          onClick={() => onEdit(snippet.id)}
+        >
+          <Pencil className="w-5 h-5" />
+        </Button>
 
-          <Button
-            variant="ghost"
-            className="flex items-center justify-center gap-1 px-4 py-3 bg-secondary text-red-500 rounded-md"
-            onClick={handleDelete}
-          >
-            <Trash className="w-5 h-5" />
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          className="flex items-center justify-center gap-1 px-4 py-3 bg-secondary text-red-500 rounded-md"
+          onClick={handleDelete}
+        >
+          <Trash className="w-5 h-5" />
+        </Button>
+      </div>
     </div>
   );
 };
