@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/tauri"; 
+import { Command } from "@tauri-apps/api/shell";
 
 // List downloaded DeepSeek models by scanning the default models directory.
 export async function listDeepSeekModels(): Promise<string[]> {
@@ -14,7 +15,7 @@ export async function listDeepSeekModels(): Promise<string[]> {
 // Check if DeepSeek is installed.
 export async function checkDeepSeekInstalled(): Promise<boolean> {
   try {
-    return await invoke("check_deepseek");
+    return await invoke<boolean>("check_deepseek");
   } catch (err) {
     console.error("Error checking DeepSeek installation:", err);
     return false;
@@ -35,7 +36,11 @@ export async function installDeepSeekModel(model: string): Promise<string> {
 // Check if Ollama is installed.
 export async function checkOllamaInstalled(): Promise<boolean> {
   try {
-    return await invoke("check_ollama");
+    const command = new Command("ollama", ["--version"]);
+    const { code, stdout, stderr } = await command.execute();
+    console.log("Ollama version output:", stdout);
+    // If the command runs successfully and returns output, assume it's installed.
+    return code === 0 && stdout.trim().length > 0;
   } catch (err) {
     console.error("Error checking Ollama installation:", err);
     return false;
@@ -53,23 +58,22 @@ export async function runDeepSeek(prompt: string, model: string): Promise<string
 
 export async function completeSnippetMetadata(
   code: string,
-  selectedModel: "1.5b" | "7b",
+  selectedModel: "7b",
   userTitle?: string,
   userDescription?: string,
   userLanguage?: string,
-  userFramework?: string, // new parameter
+  userFramework?: string,
   userTags?: string[]
 ): Promise<{
   title: string;
   description: string;
   codeLanguage: string;
-  framework: string; // new key
+  framework: string;
   tags: string[];
   error?: string;
 }> {
   const modelName = selectedModel === "7b" ? "deepseek-r1:7b" : "deepseek-r1:1.5b";
 
-  // Build optional user-data section.
   let userDataLines: string[] = [];
   if (userTitle?.trim()) {
     userDataLines.push(`- Title: ${userTitle.trim()}`);

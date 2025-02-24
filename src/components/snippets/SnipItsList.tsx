@@ -50,7 +50,6 @@ export const SnipItsList = ({
   selectedCollection,
   setSelectedCollection,
 }: SnipItsListProps) => {
-  // Local state for search and filters
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<string[]>([]);
   const [editingSnippetId, setEditingSnippetId] = useState<string | null>(null);
@@ -60,7 +59,6 @@ export const SnipItsList = ({
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [isCollectionPopoverOpen, setIsCollectionPopoverOpen] = useState(false);
 
-  // Collections and snippets queries
   const { data: collections = [], isLoading: isLoadingCollections } = useCollectionsQuery();
   const {
     data: snippets = [],
@@ -68,7 +66,6 @@ export const SnipItsList = ({
     isLoading: isLoadingSnippets,
   } = useSnippetsQuery(selectedCollection?.path);
 
-  // Load saved collection from settings if available.
   useEffect(() => {
     async function loadSavedCollection() {
       const settings = await loadSettings();
@@ -87,7 +84,6 @@ export const SnipItsList = ({
     loadSavedCollection();
   }, [collections, setSelectedCollection]);
 
-  // Compute available frameworks and languages from snippets.
   const availableFrameworks = useMemo(() => {
     return Array.from(new Set(snippets.map((s) => (s as any).framework).filter(Boolean)));
   }, [snippets]);
@@ -121,7 +117,6 @@ export const SnipItsList = ({
   };
 
   const toggleStar = () => {
-    // Simply refetch snippets for now after a star toggle.
     refetchSnippets();
   };
 
@@ -132,12 +127,10 @@ export const SnipItsList = ({
     }
   };
 
-  // Filtering: first, filter by side (favorites, starred, unlabeled, etc.)
   const sideFiltered = useMemo(() => {
     return filterBySide(snippets, filters, availableLanguages);
   }, [snippets, filters, availableLanguages]);
 
-  // Then, filter by search query.
   const finalSnippets = useMemo(() => {
     return filterBySearch(sideFiltered, searchQuery);
   }, [sideFiltered, searchQuery]);
@@ -169,107 +162,113 @@ export const SnipItsList = ({
     <div className="h-full flex">
       {/* Sidebar */}
       <aside className="w-64 p-4 border-r flex flex-col">
-        <h3 className="text-md font-semibold mb-2 text-muted-foreground">
-          Favorites
-        </h3>
-        <div className="space-y-2 mb-4">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={filters.length === 0 ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => setFilters([])}
-                >
-                  <Folders className="w-4 h-4" />
-                  <span className="ml-2">All</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Show all snippets</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={filters.includes("starred") ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => toggleFilter("starred")}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span className="ml-2">Starred</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Show starred snippets</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={filters.includes("unlabeled") ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => toggleFilter("unlabeled")}
-                >
-                  <Tag className="w-4 h-4" />
-                  <span className="ml-2">Unlabeled</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Show snippets without tags</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+        <div className="flex-1">
+          <h3 className="text-md font-semibold mb-2 text-muted-foreground">
+            Favorites
+          </h3>
+          <div className="space-y-2 mb-4">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={filters.length === 0 ? "secondary" : "ghost"}
+                    className="w-full justify-start"
+                    onClick={() => setFilters([])}
+                  >
+                    <Folders className="w-4 h-4" />
+                    <span className="ml-2">All</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Show all snippets</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={filters.includes("starred") ? "secondary" : "ghost"}
+                    className="w-full justify-start"
+                    onClick={() => toggleFilter("starred")}
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span className="ml-2">Starred</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Show starred snippets</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={filters.includes("unlabeled") ? "secondary" : "ghost"}
+                    className="w-full justify-start"
+                    onClick={() => toggleFilter("unlabeled")}
+                  >
+                    <Tag className="w-4 h-4" />
+                    <span className="ml-2">Unlabeled</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Show snippets without tags</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
 
-        {/* Frameworks Section */}
-        <h3 className="text-md font-semibold mb-2 text-muted-foreground">
-          Frameworks
-        </h3>
-        <div className="space-y-2 mb-2 overflow-auto">
-          {availableFrameworks.length > 0 ? (
-            availableFrameworks.map((fw) => {
-              const normalizedFW = fw.toLowerCase();
-              return (
-                <Button
-                  key={fw}
-                  variant={filters.includes(normalizedFW) ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => toggleFilter(fw)}
-                >
-                  <FileText className="w-4 h-4" />
-                  <span className="ml-2">{fw}</span>
-                </Button>
-              );
-            })
-          ) : (
-            <p className="text-sm text-muted-foreground">No frameworks found</p>
-          )}
-        </div>
+          {/* Frameworks Section */}
+          <div className={availableFrameworks.length > 0 ? "" : "hidden"}>
+            <h3 className="text-md font-semibold mb-2 text-muted-foreground">
+              Frameworks
+            </h3>
+            <div className="space-y-2 mb-2 overflow-auto">
+              {availableFrameworks.length > 0 ? (
+                availableFrameworks.map((fw) => {
+                  const normalizedFW = fw.toLowerCase();
+                  return (
+                    <Button
+                      key={fw}
+                      variant={filters.includes(normalizedFW) ? "secondary" : "ghost"}
+                      className="w-full justify-start"
+                      onClick={() => toggleFilter(fw)}
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span className="ml-2">{fw}</span>
+                    </Button>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-muted-foreground">No frameworks found</p>
+              )}
+            </div>
+          </div>
 
-        {/* Languages Section */}
-        <h3 className="text-md font-semibold mb-2 text-muted-foreground">
-          Languages
-        </h3>
-        <div className="space-y-2 flex-1 overflow-auto">
-          {availableLanguages.length > 0 ? (
-            availableLanguages.map((lang) => {
-              const normalizedLang = lang.toLowerCase();
-              return (
-                <Button
-                  key={lang}
-                  variant={filters.includes(normalizedLang) ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => toggleFilter(lang)}
-                >
-                  <FileText className="w-4 h-4" />
-                  <span className="ml-2">{lang}</span>
-                </Button>
-              );
-            })
-          ) : (
-            <p className="text-sm text-muted-foreground">No languages found</p>
-          )}
+          {/* Languages Section */}
+          <div className={availableLanguages.length > 0 ? "" : "hidden"}>
+            <h3 className="text-md font-semibold mb-2 text-muted-foreground">
+              Languages
+            </h3>
+            <div className="space-y-2 flex-1 overflow-auto">
+              {availableLanguages.length > 0 ? (
+                availableLanguages.map((lang) => {
+                  const normalizedLang = lang.toLowerCase();
+                  return (
+                    <Button
+                      key={lang}
+                      variant={filters.includes(normalizedLang) ? "secondary" : "ghost"}
+                      className="w-full justify-start"
+                      onClick={() => toggleFilter(lang)}
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span className="ml-2">{lang}</span>
+                    </Button>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-muted-foreground">No languages found</p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Collection Selector */}
