@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getSnippetById, saveSnippet, Snippet } from "@/lib/SnipItService";
 import { Collection } from "@/lib/CollectionsService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { invoke } from "@tauri-apps/api/tauri";
+// import { invoke } from "@tauri-apps/api/tauri";
 import { completeSnippetMetadata } from "@/lib/modelService";
 
 // Framer Motion
@@ -61,8 +61,8 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
   const [titleLocked, setTitleLocked] = useState(!!snippetId);
   const [descriptionLocked, setDescriptionLocked] = useState(!!snippetId);
   const [languageLocked, setLanguageLocked] = useState(!!snippetId);
-  const [framework, setFramework] = useState("");
-  const [frameworkLocked, setFrameworkLocked] = useState(!!snippetId);
+  // const [framework, setFramework] = useState("");
+  // const [frameworkLocked, setFrameworkLocked] = useState(!!snippetId);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -107,11 +107,11 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
         setTitleLocked(data.locks.title);
         setDescriptionLocked(data.locks.description);
         setLanguageLocked(data.locks.language);
-        setFrameworkLocked(data.locks.framework);
+        // setFrameworkLocked(data.locks.framework);
       }
-      if ("framework" in data) {
-        setFramework((data as any).framework || "");
-      }
+      // if ("framework" in data) {
+      //   setFramework((data as any).framework || "");
+      // }
     }
   }, [data]);
 
@@ -189,7 +189,7 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
       description,
       code,
       language,
-      framework,
+      // framework,
       tags: finalTags,
       starred: data?.starred ?? false,
       date: creationDate,
@@ -198,7 +198,7 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
         title: titleLocked,
         description: descriptionLocked,
         language: languageLocked,
-        framework: frameworkLocked,
+        // framework: frameworkLocked,
       },
     };
     saveMutation.mutate(snippetData);
@@ -275,7 +275,7 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
         setTitle(titleLocked ? title : (result.title ?? ""));
         setDescription(descriptionLocked ? description : (result.description ?? ""));
         setLanguage(languageLocked ? language : (result.codeLanguage ?? ""));
-        setFramework(frameworkLocked ? framework : (result.framework ?? ""));
+        // setFramework(frameworkLocked ? framework : (result.framework ?? ""));
         setTags(result.tags || []);
         toast({
           title: "AI Completed",
@@ -458,7 +458,7 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
                 </motion.div>
 
                 {/* FRAMEWORK FIELD */}
-                <h3 className="text-md font-semibold text-foreground mb-2">
+                {/* <h3 className="text-md font-semibold text-foreground mb-2">
                   Framework
                 </h3>
                 <motion.div
@@ -497,7 +497,7 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
                       {frameworkLocked ? "Unlock Framework" : "Lock Framework"}
                     </TooltipContent>
                   </Tooltip>
-                </motion.div>
+                </motion.div> */}
 
                 {/* LANGUAGE FIELD */}
                 <h3 className="text-md font-semibold text-foreground mb-2">

@@ -10,6 +10,48 @@ import {
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
+import Icon from "@mdi/react";
+import {
+  mdiLanguageJavascript,
+  mdiLanguagePython,
+  mdiLanguageC,
+  mdiLanguageCpp,
+  mdiLanguageJava,
+  mdiLanguageGo,
+  mdiLanguageRust,
+  mdiLanguagePhp,
+  mdiLanguageHtml5,
+  mdiLanguageCss3,
+  mdiLanguageSwift,
+  mdiLanguageKotlin,
+  mdiLanguageRuby,
+  mdiLanguageTypescript,
+  mdiLanguageMarkdown,
+  mdiLanguageLua,
+  mdiLanguageHaskell,
+  mdiCodeBraces,
+} from "@mdi/js";
+
+const languageIcons: Record<string, string> = {
+  javascript: mdiLanguageJavascript,
+  typescript: mdiLanguageTypescript,
+  python: mdiLanguagePython,
+  c: mdiLanguageC,
+  "c++": mdiLanguageCpp,
+  cpp: mdiLanguageCpp,
+  java: mdiLanguageJava,
+  go: mdiLanguageGo,
+  rust: mdiLanguageRust,
+  php: mdiLanguagePhp,
+  html: mdiLanguageHtml5,
+  css: mdiLanguageCss3,
+  swift: mdiLanguageSwift,
+  kotlin: mdiLanguageKotlin,
+  ruby: mdiLanguageRuby,
+  markdown: mdiLanguageMarkdown,
+  lua: mdiLanguageLua,
+  haskell: mdiLanguageHaskell,
+};
 import { SnipItView } from "./SnipItView";
 import { SnipItForm } from "./SnipItForm";
 import { SnipItCard } from "./SnipItCard";
@@ -196,7 +238,7 @@ export const SnipItsList = ({
                   <p>Show starred snippets</p>
                 </TooltipContent>
               </Tooltip>
-              <Tooltip>
+              {/* <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant={filters.includes("unlabeled") ? "secondary" : "ghost"}
@@ -210,15 +252,13 @@ export const SnipItsList = ({
                 <TooltipContent>
                   <p>Show snippets without tags</p>
                 </TooltipContent>
-              </Tooltip>
+              </Tooltip> */}
             </TooltipProvider>
           </div>
 
           {/* Languages Section */}
           <div className={availableLanguages.length > 0 ? "" : "hidden"}>
-            <h3 className="text-md font-semibold mb-2 text-muted-foreground">
-              Languages
-            </h3>
+            <h3 className="text-md font-semibold mb-2 text-muted-foreground">Languages</h3>
             <div className="space-y-2 flex-1 overflow-auto">
               {availableLanguages.length > 0 ? (
                 availableLanguages.map((lang) => {
@@ -230,8 +270,8 @@ export const SnipItsList = ({
                       className="w-full justify-start"
                       onClick={() => toggleFilter(lang)}
                     >
-                      <FileText className="w-4 h-4" />
-                      <span className="ml-2">{lang}</span>
+                      <Icon path={languageIcons[normalizedLang] || mdiCodeBraces} size={0.8} className="mr-2" />
+                      <span>{lang}</span>
                     </Button>
                   );
                 })

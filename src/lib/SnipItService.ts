@@ -17,7 +17,7 @@ export type Snippet = {
     title: boolean;
     description: boolean;
     language: boolean;
-    framework: boolean; // new lock for framework
+    // framework: boolean; // new lock for framework
   };
 };
 

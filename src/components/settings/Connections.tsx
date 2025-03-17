@@ -91,6 +91,8 @@ export default function Connections() {
     }
   };
 
+  const notRecommendedGroups = ["deepseek-coder", "legacy-models"];
+
   return (
     <div>
       <h1 className="text-2xl font-bold">{settingsMeta.name}</h1>
@@ -142,10 +144,14 @@ export default function Connections() {
               <SelectValue placeholder="Select Model" />
             </SelectTrigger>
             <SelectContent>
-              {modelGroups.length > 0 ? (
-                modelGroups.map((group) => (
+            {modelGroups.length > 0 ? (
+              modelGroups.map((group) => {
+                const isNotRecommended = notRecommendedGroups.includes(group.group);
+                return (
                   <SelectGroup key={group.group}>
-                    <SelectLabel>{group.group}</SelectLabel>
+                    <SelectLabel className={isNotRecommended ? "text-red-500" : ""}>
+                      {group.group} {isNotRecommended && "(Not Recommended)"}
+                    </SelectLabel>
                     {group.models.map((model) => {
                       const fullModel = `${group.group}:${model}`;
                       const displayModel = `${group.group} ${model}`;
@@ -157,15 +163,14 @@ export default function Connections() {
                     })}
                     <SelectSeparator />
                   </SelectGroup>
-                ))
-              ) : (
-                <>
-                  <SelectItem value="deepseek-r1:7b">deepseek-r1 7b</SelectItem>
-                  <SelectItem value="deepseek-r1:1.5b">
-                    deepseek-r1 1.5b
-                  </SelectItem>
-                </>
-              )}
+                );
+              })
+            ) : (
+              <>
+                <SelectItem value="deepseek-r1:7b">deepseek-r1 7b</SelectItem>
+                <SelectItem value="deepseek-r1:1.5b">deepseek-r1 1.5b</SelectItem>
+              </>
+            )}
             </SelectContent>
           </Select>
         </div>

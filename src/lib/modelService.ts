@@ -61,7 +61,6 @@ export async function listModels(): Promise<{ group: string; models: string[] }[
     const groups: { group: string; models: string[] }[] = [];
     const groupEntries = await readDir(libraryPath, { recursive: false });
     for (const groupEntry of groupEntries) {
-      // Check if entry is a folder by looking for a defined children property.
       if (groupEntry.children !== undefined) {
         const groupName = groupEntry.name ?? "Unknown";
         const groupFolderPath = groupEntry.path;
@@ -70,7 +69,6 @@ export async function listModels(): Promise<{ group: string; models: string[] }[
         for (const modelEntry of modelEntries) {
           if (modelEntry.children === undefined && modelEntry.name) {
             let modelName = modelEntry.name;
-            // Remove a known extension if present (e.g. ".json")
             if (modelName.endsWith(".json")) {
               modelName = modelName.slice(0, -5);
             }
@@ -87,15 +85,20 @@ export async function listModels(): Promise<{ group: string; models: string[] }[
     return [];
   }
 }
-
-// Runs a model command using Ollama.
-export async function runModel(prompt: string, model: string): Promise<string> {
-  try {
-    return await invoke("run_deepseek", { prompt, model });
-  } catch (err) {
-    console.error("Error running model:", err);
-    throw err;
-  }
+export async function runModel(
+  prompt: string,
+  model: string,
+  signal?: AbortSignal
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const p = invoke("run_deepseek", { prompt, model });
+    if (signal) {
+      signal.addEventListener("abort", () => {
+        reject(new Error("Generation aborted"));
+      });
+    }
+    p.then((value) => resolve(value as string)).catch(reject);
+  });
 }
 
 /**
@@ -107,6 +110,7 @@ export async function runModel(prompt: string, model: string): Promise<string> {
  * @param userDescription Optional user-provided description.
  * @param userLanguage Optional user-provided language.
  * @param userTags Optional user-provided tags.
+ * @param signal Optional AbortSignal to cancel the generation.
  * @returns A JSON object containing title, description, codeLanguage, framework, tags and optionally error.
  */
 export async function completeSnippetMetadata(
@@ -115,18 +119,18 @@ export async function completeSnippetMetadata(
   userTitle?: string,
   userDescription?: string,
   userLanguage?: string,
-  userTags?: string[]
+  userTags?: string[],
+  signal?: AbortSignal
 ): Promise<{
   title: string;
   description: string;
   codeLanguage: string;
-  framework: string;
+  // framework: string;
   tags: string[];
   error?: string;
 }> {
   const modelName = selectedModel;
   
-  // Print the model being used
   console.log("Using model:", modelName);
   
   const userDataLines: string[] = [];
@@ -150,22 +154,102 @@ ${userDataLines.join("\n")}
 `;
   }
 
-  const promptText = `
-Act as a metadata generator bot for code snippets. You will receive a code snippet along with optional user-provided fields. Your task is to analyze the snippet and generate a valid JSON object that strictly follows the specifications below. The JSON object must have exactly five keys in the following order: "title", "description", "codeLanguage", "framework", and "tags". No additional keys or commentary should be output (except an "error" key only if necessary as described below).
+//   const promptText = `
+// Act as a metadata generator bot for code snippets. 
+// You will receive a code snippet along with optional user-provided fields. 
+// Your task is to analyze the snippet and generate a valid JSON object that strictly follows the specifications below. 
+// The JSON object must have exactly five keys in the following order: "title", "description", "codeLanguage", "framework", and "tags". 
+// No additional keys or commentary should be output (except an "error" key only if necessary as described below).
+
+// 1. "title":
+//    - Generate a concise and clear title summarizing the snippet’s subject.
+//    - Must not exceed 60 characters.
+//    - Must be correctly capitalized.
+//    - Must not contain any special characters or spaces.
+//    - Must not contain duplicates.
+// 2. "description":
+//    - Produce a single sentence outlining the snippet’s features.
+//    - Must be no longer than 150 characters.
+//    - Must be correctly capitalized.
+//    - Must not contain any special characters or spaces.
+//    - Must not contain duplicates.
+// 3. "codeLanguage":
+//    - Determine the primary programming language used in the snippet.
+//    - Must be correctly capitalized.
+//    - Must not contain any special characters or spaces.
+//    - Must not contain duplicates.
+// 4. "framework":
+//    - If applicable, determine the framework used; otherwise, output an empty string.
+//     - Must be correctly capitalized.
+//     - Must be an empty string if not applicable.
+//     - Must not contain any special characters or spaces.
+//     - Must not contain duplicates.
+// 5. "tags":
+//    - Generate an array of 3 to 10 relevant keywords (all in lowercase, no spaces).
+//    - Must be correctly capitalized.
+//    - Must not contain any special characters or spaces.
+//    - Must not contain duplicates.
+
+
+// Here is an example of how you have to conclude your answer:
+
+// "
+// {
+// "title": "Example Title",
+// "description": "Example Description",
+// "codeLanguage": "Example Coding Language (Python, C++, Ruby etc)",
+// "framework": "Example Framework (React (TypeScript or JavaScript), Ursina (Python), Panda3D (C++) etc if applicable)",
+// "tags": ["Example Tag 1", "Example Tag 2", "Example Tag 3"...]
+// }
+// "
+
+// Here is the code snippet:
+// ${code}
+
+// ${userDataSection}
+// `;
+
+const promptText = `
+Act as a metadata generator bot for code snippets. 
+You will receive a code snippet along with optional user-provided fields. 
+Your task is to analyze the snippet and generate a valid JSON object that strictly follows the specifications below. 
+The JSON object must have exactly five keys in the following order: "title", "description", "codeLanguage", and "tags". 
+No additional keys or commentary should be output (except an "error" key only if necessary as described below).
 
 1. "title":
    - Generate a concise and clear title summarizing the snippet’s subject.
    - Must not exceed 60 characters.
+   - Must be correctly capitalized.
+   - Must not contain any special characters or spaces.
+   - Must not contain duplicates.
 2. "description":
    - Produce a single sentence outlining the snippet’s features.
    - Must be no longer than 150 characters.
+   - Must be correctly capitalized.
+   - Must not contain any special characters or spaces.
+   - Must not contain duplicates.
 3. "codeLanguage":
    - Determine the primary programming language used in the snippet.
    - Must be correctly capitalized.
-4. "framework":
-   - If applicable, determine the framework used; otherwise, output an empty string.
-5. "tags":
+   - Must not contain any special characters or spaces.
+   - Must not contain duplicates.
+4. "tags":
    - Generate an array of 3 to 10 relevant keywords (all in lowercase, no spaces).
+   - Must be correctly capitalized.
+   - Must not contain any special characters or spaces.
+   - Must not contain duplicates.
+
+
+Here is an example of how you have to conclude your answer:
+
+"
+{
+"title": "Example Title",
+"description": "Example Description",
+"codeLanguage": "Example Coding Language (Python, C++, Ruby etc)",
+"tags": ["Example Tag 1", "Example Tag 2", "Example Tag 3"...]
+}
+"
 
 Here is the code snippet:
 ${code}
@@ -175,14 +259,11 @@ ${userDataSection}
 
   let rawResponse = "";
   try {
-    rawResponse = await runModel(promptText, modelName);
-  } finally {
-    try {
-      await runModel("/bye", modelName);
-    } catch (closeErr) {
-      console.warn("Warning: failed to close model session with /bye:", closeErr);
-    }
+    rawResponse = await runModel(promptText, modelName, signal);
+  } catch (err) {
+    throw err;
   }
+
   console.log("Raw AI response:", rawResponse);
   const sanitizedResponse = rawResponse.replace(/<think>[\s\S]*?<\/think>/g, "");
   const jsonMatch = sanitizedResponse.match(/{[\s\S]*}/);
@@ -201,7 +282,7 @@ ${userDataSection}
     title: result.title || "",
     description: result.description || "",
     codeLanguage: result.codeLanguage || "",
-    framework: result.framework || "",
+    // framework: result.framework || "",
     tags: result.tags || [],
     error: result.error,
   };
