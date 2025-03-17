@@ -20,9 +20,11 @@ import { useToast } from "@/hooks/use-toast";
 
 export const settingsMeta = {
   name: "Collections",
+  description: "Manage multiple collection directories.",
   icon: <FolderOpen className="w-4 h-4" />,
   group: "Main",
   order: 3,
+  visible: true,
 };
 
 export default function Collections() {
@@ -77,8 +79,8 @@ export default function Collections() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">Collections</h1>
-      <p className="mb-4">Manage multiple collection directories.</p>
+      <h1 className="text-2xl font-bold">{settingsMeta.name}</h1>
+      <p className="mb-4">{settingsMeta.description}</p>
       <Button variant="outline" onClick={() => setNewCollection({ name: "", path: "" })}>
         <FolderOpen className="w-4 h-4 mr-1" /> Add Collection
       </Button>

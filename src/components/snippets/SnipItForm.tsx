@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { getSnippetById, saveSnippet, Snippet } from "@/lib/SnipItService";
 import { Collection } from "@/lib/CollectionsService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/tauri";
-import { completeSnippetMetadata } from "@/lib/deepSeekService";
+import { completeSnippetMetadata } from "@/lib/modelService";
 
 // Framer Motion
 import { motion } from "framer-motion";
@@ -57,7 +57,7 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // For new snippets, default locks to false (if snippetId is not provided)
+  // State declarations
   const [titleLocked, setTitleLocked] = useState(!!snippetId);
   const [descriptionLocked, setDescriptionLocked] = useState(!!snippetId);
   const [languageLocked, setLanguageLocked] = useState(!!snippetId);
@@ -71,13 +71,17 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
-  // Undo/Redo states (simple one-step approach)
+  // Undo/Redo states
   const [undoState, setUndoState] = useState<Snippet | null>(null);
   const [redoState, setRedoState] = useState<Snippet | null>(null);
 
-  // AI loading & installation check
+  // AI loading state
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [isDeepSeekInstalled, setIsDeepSeekInstalled] = useState(false);
+  // Model selection state (initially blank)
+  const [selectedModel, setSelectedModel] = useState<string>("");
+
+  // Ref to track if generation was cancelled.
+  const aiCancelledRef = useRef(false);
 
   const snippetQueryKey = [
     "snippet",
@@ -105,7 +109,6 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
         setLanguageLocked(data.locks.language);
         setFrameworkLocked(data.locks.framework);
       }
-      // If framework is saved, load it; else remain empty.
       if ("framework" in data) {
         setFramework((data as any).framework || "");
       }
@@ -122,17 +125,12 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
     }
   }, [error, toast]);
 
-  // Check if DeepSeek is installed on mount
+  // Load selected model from localStorage on mount.
   useEffect(() => {
-    invoke<boolean>("check_deepseek")
-      .then((res) => {
-        console.log("DeepSeek installed check:", res);
-        setIsDeepSeekInstalled(res);
-      })
-      .catch((err) => {
-        console.error(err);
-        setIsDeepSeekInstalled(false);
-      });
+    const saved = localStorage.getItem("selectedModel");
+    if (saved) {
+      setSelectedModel(saved);
+    }
   }, []);
 
   // Save snippet mutation
@@ -183,18 +181,14 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
     const id =
       snippetId || Math.floor(100000000 + Math.random() * 900000000).toString();
     const finalTags = tags.length > 0 ? tags : ["unlabeled"];
-
-    // Use original date if editing; otherwise, new date
     const creationDate =
       isExistingSnippet && data ? data.date : new Date().toISOString();
-
     const snippetData: Snippet = {
       id,
       title,
       description,
       code,
       language,
-      // New framework field:
       framework,
       tags: finalTags,
       starred: data?.starred ?? false,
@@ -211,7 +205,16 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
   };
 
   /**
-   * AI metadata generation – now passes framework along.
+   * Cancel the ongoing AI generation.
+   */
+  const handleCancelGeneration = () => {
+    aiCancelledRef.current = true;
+    setIsAiLoading(false);
+    toast({ title: "Cancelled", description: "AI generation cancelled." });
+  };
+
+  /**
+   * AI metadata generation using the selected model.
    */
   const handleGenerateMetadata = async () => {
     if (!code.trim()) {
@@ -222,7 +225,16 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
       });
       return;
     }
-    // Store current snippet in undo
+    if (!selectedModel) {
+      toast({
+        title: "Error",
+        description: "Please select a model first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    // Reset cancellation flag and store current snippet for undo.
+    aiCancelledRef.current = false;
     setUndoState({
       id: snippetId || "",
       title,
@@ -233,24 +245,26 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
       starred: false,
       date: "",
     });
-    // Clear redo since new state is coming
     setRedoState(null);
 
-    const selectedModel =
-      (localStorage.getItem("selectedDeepSeekModel") as "1.5b" | "7b" | null) ||
-      "7b";
+    // Retrieve the selected model (from localStorage or state)
+    const selectedModelFromStorage =
+      localStorage.getItem("selectedModel") || "";
 
     setIsAiLoading(true);
     try {
       const result = await completeSnippetMetadata(
         code,
-        selectedModel,
+        selectedModelFromStorage,
         title,
         description,
         language,
-        framework,
         tags
       );
+      if (aiCancelledRef.current) {
+        console.log("Generation cancelled, ignoring result.");
+        return;
+      }
       if (result.error) {
         toast({
           title: "AI Error",
@@ -263,7 +277,6 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
         setLanguage(languageLocked ? language : (result.codeLanguage ?? ""));
         setFramework(frameworkLocked ? framework : (result.framework ?? ""));
         setTags(result.tags || []);
-
         toast({
           title: "AI Completed",
           description: "Fields updated (unless locked).",
@@ -281,9 +294,6 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
     }
   };
 
-  /**
-   * Undo sets the snippet to `undoState`.
-   */
   const handleUndo = () => {
     if (!undoState) {
       toast({
@@ -304,19 +314,14 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
       date: "",
     };
     setRedoState(currentSnippet);
-
     setTitle(undoState.title);
     setDescription(undoState.description ?? "");
     setCode(undoState.code);
     setLanguage(undoState.language);
     setTags(undoState.tags);
-
     toast({ title: "Undone", description: "Reverted to previous state." });
   };
 
-  /**
-   * Redo sets the snippet to `redoState`.
-   */
   const handleRedo = () => {
     if (!redoState) {
       toast({
@@ -337,19 +342,14 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
       date: "",
     };
     setUndoState(currentSnippet);
-
     setTitle(redoState.title);
     setDescription(redoState.description ?? "");
     setCode(redoState.code);
     setLanguage(redoState.language);
     setTags(redoState.tags);
-
     toast({ title: "Redone", description: "Restored next version." });
   };
 
-  /**
-   * Attempt to add a new tag if under the max count.
-   */
   const handleAddTag = (newTag: string) => {
     if (tags.length >= MAX_TAGS) {
       toast({
@@ -377,7 +377,11 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
                 <h3 className="text-md font-semibold text-foreground mb-2">
                   Title
                 </h3>
-                <motion.div className="mb-4 relative" initial="hidden" whileHover="visible">
+                <motion.div
+                  className="mb-4 relative"
+                  initial="hidden"
+                  whileHover="visible"
+                >
                   <Input
                     placeholder="Snippet Title"
                     value={title}
@@ -405,7 +409,9 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
                         )}
                       </motion.button>
                     </TooltipTrigger>
-                    <TooltipContent>{titleLocked ? "Unlock Title" : "Lock Title"}</TooltipContent>
+                    <TooltipContent>
+                      {titleLocked ? "Unlock Title" : "Lock Title"}
+                    </TooltipContent>
                   </Tooltip>
                 </motion.div>
 
@@ -413,7 +419,11 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
                 <h3 className="text-md font-semibold text-foreground mb-2">
                   Description
                 </h3>
-                <motion.div className="mb-4 relative" initial="hidden" whileHover="visible">
+                <motion.div
+                  className="mb-4 relative"
+                  initial="hidden"
+                  whileHover="visible"
+                >
                   <Input
                     placeholder="Description (optional)"
                     value={description}
@@ -451,7 +461,11 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
                 <h3 className="text-md font-semibold text-foreground mb-2">
                   Framework
                 </h3>
-                <motion.div className="mb-4 relative" initial="hidden" whileHover="visible">
+                <motion.div
+                  className="mb-4 relative"
+                  initial="hidden"
+                  whileHover="visible"
+                >
                   <Input
                     placeholder="Framework (optional)"
                     value={framework}
@@ -489,7 +503,11 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
                 <h3 className="text-md font-semibold text-foreground mb-2">
                   Language
                 </h3>
-                <motion.div className="mb-4 relative" initial="hidden" whileHover="visible">
+                <motion.div
+                  className="mb-4 relative"
+                  initial="hidden"
+                  whileHover="visible"
+                >
                   <Input
                     placeholder="Language"
                     value={language}
@@ -584,11 +602,11 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
                     <Button
                       className="flex items-center justify-center gap-2 px-3 py-2 bg-accent hover:bg-accent/80 text-white rounded-md"
                       onClick={handleGenerateMetadata}
-                      disabled={isAiLoading || !isDeepSeekInstalled}
+                      disabled={isAiLoading || !selectedModel}
                     >
                       {isAiLoading ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : isDeepSeekInstalled ? (
+                      ) : selectedModel ? (
                         <Bot className="w-5 h-5" />
                       ) : (
                         <BotOff className="w-5 h-5" />
@@ -597,9 +615,9 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {isDeepSeekInstalled
+                    {selectedModel
                       ? "Generate snippet metadata with AI"
-                      : "DeepSeek not installed, AI disabled"}
+                      : "Select a model to enable AI"}
                   </TooltipContent>
                 </Tooltip>
 
@@ -680,6 +698,13 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
               <span className="mt-4 text-white text-lg">
                 Generating metadata, please wait...
               </span>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={handleCancelGeneration}
+              >
+                Cancel
+              </Button>
             </div>
           )}
         </div>

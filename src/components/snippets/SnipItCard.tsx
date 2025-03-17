@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EllipsisVertical, Star, Pencil, Copy, Trash } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { tomorrow, prism } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Snippet, useSnippetMutations } from "@/lib/SnipItService";
 import { useToast } from "@/hooks/use-toast";
 
@@ -123,6 +123,7 @@ export const SnipItCard = ({
           <SyntaxHighlighter
           // check if snippet language is C++, if so use cpp instead, else just use snippet.language.toLowerCase()
             language={snippet.language === "C++" ? "cpp" : snippet.language.toLowerCase()}
+            // if theme is dark use tomorrow, else use prism
             style={tomorrow}
             showLineNumbers
             customStyle={{

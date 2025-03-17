@@ -10,17 +10,16 @@ type NavItem =
   | { type: "item"; icon: React.ElementType; page: PageType, label: string }
   | { type: "separator" };
 
-// Top items
 const topNavItems: NavItem[] = [
   { type: "item", icon: Home, page: "home", label: "Home" },
   { type: "item", icon: SquareDashedBottomCode, page: "snipits", label: "Snippets" },
   { type: "separator" },
-  { type: "item", icon: Users, page: "home", label: "Users" },
-  { type: "item", icon: BookMarked, page: "home", label: "Docs" },
+  // { type: "item", icon: Users, page: "home", label: "Users" },
+  // { type: "item", icon: BookMarked, page: "home", label: "Docs" },
 ];
 
 const bottomNavItems: NavItem[] = [
-  { type: "item", icon: Trash, page: "home", label: "Trash" },
+  // { type: "item", icon: Trash, page: "home", label: "Trash" },
   { type: "item", icon: Settings, page: "settings", label: "Settings" },
 ];
 

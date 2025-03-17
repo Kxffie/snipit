@@ -6,9 +6,11 @@ import { Library } from "lucide-react";
 
 export const settingsMeta = {
   name: "About",
+  description: "Information about the app, your device, and integrations.",
   icon: <Library className="w-4 h-4" />,
   group: "Info",
   order: 1,
+  visible: true,
 };
 
 export default function About() {
@@ -29,8 +31,8 @@ export default function About() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">About</h1>
-      <p className="mb-4">Information about the app, your device, and integrations.</p>
+      <h1 className="text-2xl font-bold">{settingsMeta.name}</h1>
+      <p className="mb-4">{settingsMeta.description}</p>
       <div className="space-y-4 w-96">
         <div>
           <h3 className="text-md font-semibold mb-2 text-muted-foreground">System Information</h3>

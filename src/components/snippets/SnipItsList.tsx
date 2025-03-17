@@ -7,6 +7,8 @@ import {
   Folders,
   Tag,
   Filter,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { SnipItView } from "./SnipItView";
 import { SnipItForm } from "./SnipItForm";
@@ -83,10 +85,6 @@ export const SnipItsList = ({
     }
     loadSavedCollection();
   }, [collections, setSelectedCollection]);
-
-  const availableFrameworks = useMemo(() => {
-    return Array.from(new Set(snippets.map((s) => (s as any).framework).filter(Boolean)));
-  }, [snippets]);
 
   const availableLanguages = useMemo(() => {
     return Array.from(new Set(snippets.map((s) => s.language).filter(Boolean)));
@@ -216,33 +214,6 @@ export const SnipItsList = ({
             </TooltipProvider>
           </div>
 
-          {/* Frameworks Section */}
-          <div className={availableFrameworks.length > 0 ? "" : "hidden"}>
-            <h3 className="text-md font-semibold mb-2 text-muted-foreground">
-              Frameworks
-            </h3>
-            <div className="space-y-2 mb-2 overflow-auto">
-              {availableFrameworks.length > 0 ? (
-                availableFrameworks.map((fw) => {
-                  const normalizedFW = fw.toLowerCase();
-                  return (
-                    <Button
-                      key={fw}
-                      variant={filters.includes(normalizedFW) ? "secondary" : "ghost"}
-                      className="w-full justify-start"
-                      onClick={() => toggleFilter(fw)}
-                    >
-                      <FileText className="w-4 h-4" />
-                      <span className="ml-2">{fw}</span>
-                    </Button>
-                  );
-                })
-              ) : (
-                <p className="text-sm text-muted-foreground">No frameworks found</p>
-              )}
-            </div>
-          </div>
-
           {/* Languages Section */}
           <div className={availableLanguages.length > 0 ? "" : "hidden"}>
             <h3 className="text-md font-semibold mb-2 text-muted-foreground">
@@ -275,8 +246,13 @@ export const SnipItsList = ({
         <div className="mt-4">
           <Popover open={isCollectionPopoverOpen} onOpenChange={setIsCollectionPopoverOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full flex items-center justify-between">
                 {selectedCollection?.name ?? "Select Collection"}
+                {isCollectionPopoverOpen ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
               </Button>
             </PopoverTrigger>
             <PopoverContent side="top" sideOffset={8} className="p-2 w-full max-h-48 overflow-y-auto">

@@ -1,10 +1,6 @@
 import { os, fs, path } from "@tauri-apps/api";
 import { useQuery } from "@tanstack/react-query";
-import {
-  getCollections,
-  addCollection,
-  Collection,
-} from "@/lib/CollectionsService";
+import { getCollections, addCollection, Collection } from "@/lib/CollectionsService";
 import { checkOllamaInstalled } from "@/lib/modelService";
 
 export type DeviceInfo = {
@@ -16,6 +12,7 @@ export type DeviceInfo = {
 
 export async function getDeviceInfo(): Promise<DeviceInfo> {
   console.log("Starting device info check...");
+
   try {
     const platform = await os.platform();
     const version = await os.version();
@@ -53,6 +50,7 @@ export async function getDeviceInfo(): Promise<DeviceInfo> {
 
 async function checkAndCreateDirectory(): Promise<string> {
   console.log("Checking for 'com.snipit.dev' directory...");
+
   try {
     let baseDir = await path.appDataDir();
     baseDir = baseDir.replace(/[\\/]+$/, "");
@@ -67,14 +65,15 @@ async function checkAndCreateDirectory(): Promise<string> {
     }
 
     console.log("Using SnipIt Directory Path:", snipitDir);
-    const existsFlag = await fs.exists(snipitDir);
-    if (!existsFlag) {
+    const exists = await fs.exists(snipitDir);
+    if (!exists) {
       console.log("'com.snipit.dev' directory not found. Creating it now...");
       await fs.createDir(snipitDir, { recursive: true });
       console.log("'com.snipit.dev' directory created successfully.");
     } else {
       console.log("'com.snipit.dev' directory already exists.");
     }
+
     return snipitDir;
   } catch (error) {
     console.error("Error checking/creating 'com.snipit.dev' directory:", error);
@@ -84,8 +83,10 @@ async function checkAndCreateDirectory(): Promise<string> {
 
 async function initializeSettings(snipitDir: string, osDetails: string): Promise<void> {
   console.log("Initializing settings.json...");
+
   const settingsPath = await path.join(snipitDir, "settings.json");
   const defaultCollectionPath = await path.join(snipitDir, "snippets");
+
   try {
     const settingsExists = await fs.exists(settingsPath);
     if (!settingsExists) {
@@ -94,12 +95,13 @@ async function initializeSettings(snipitDir: string, osDetails: string): Promise
         os: osDetails,
         firstStartup: new Date().toISOString(),
         collectionPath: defaultCollectionPath,
-        selectedModel: "deepseek-r1:7b",
         collections: [],
         telemetry: {
           usage: true,
           errorReports: false,
         },
+        // Save default selected model
+        selectedModel: "deepseek-r1:7b",
       };
       await fs.writeTextFile(settingsPath, JSON.stringify(initialSettings, null, 2));
       console.log("settings.json created successfully.");
@@ -112,30 +114,31 @@ async function initializeSettings(snipitDir: string, osDetails: string): Promise
         updated = true;
       }
       if (!("telemetry" in existingSettings)) {
-        existingSettings.telemetry = { usage: true, errorReports: false };
+        existingSettings.telemetry = {
+          usage: true,
+          errorReports: false,
+        };
         console.log("Added default telemetry settings.");
-        updated = true;
-      }
-      if (!existingSettings.selectedModel) {
-        existingSettings.selectedModel = "deepseek-r1:7b";
-        console.log("Added default selected model to settings.");
         updated = true;
       }
       if (updated) {
         await fs.writeTextFile(settingsPath, JSON.stringify(existingSettings, null, 2));
       }
     }
+
     await getCollections();
     let collections = await getCollections();
     if (!Array.isArray(collections)) {
       console.warn("collections is not an array. Resetting to an empty array.");
       collections = [];
     }
+
     const defaultCollection: Collection = {
       id: "default",
       path: defaultCollectionPath,
       name: "Default Collection",
     };
+
     if (!collections.some((col: Collection) => col.id === defaultCollection.id)) {
       console.log("Default collection not found. Adding...");
       await fs.createDir(defaultCollectionPath, { recursive: true });
@@ -144,6 +147,7 @@ async function initializeSettings(snipitDir: string, osDetails: string): Promise
     } else {
       console.log("Default collection already exists.");
     }
+
     console.log("Settings initialization complete.");
   } catch (error) {
     console.error("Error initializing settings.json:", error);

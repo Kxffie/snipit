@@ -4,17 +4,19 @@ import { Clipboard } from "lucide-react";
 
 export const settingsMeta = {
   name: "Test",
+  description: "A sandbox for various settings.",
   icon: <Clipboard className="w-4 h-4" />,
   group: "Misc",
   order: 2,
+  visible: false,
 };
 
 export default function Test() {
   const { toast } = useToast();
   return (
     <div>
-      <h1 className="text-2xl font-bold">Test</h1>
-      <p className="mb-4">A sandbox for various settings.</p>
+      <h1 className="text-2xl font-bold">{settingsMeta.name}</h1>
+      <p className="mb-4">{settingsMeta.description}</p>
       <div className="space-y-4">
         <Button variant="ghost" onClick={() => toast({ title: "Info", description: "This is an info toast." })}>
           Show Info Toast

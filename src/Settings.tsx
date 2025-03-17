@@ -9,21 +9,23 @@ const settingsModules = import.meta.glob("@/components/settings/*.tsx", { eager:
 
 export type SettingsMeta = {
   name: string;
+  description: string;
   icon: JSX.Element;
   group?: string;
   order?: number;
+  visible?: boolean;
 };
 
 type SettingsPage = SettingsMeta & {
   component: React.ComponentType;
 };
 
-const settingsPages: SettingsPage[] = Object.entries(settingsModules).map(
-  ([, module]) => ({
+const settingsPages: SettingsPage[] = Object.entries(settingsModules)
+  .map(([, module]) => ({
     ...module.settingsMeta,
     component: module.default,
-  })
-);
+  }))
+  .filter((page) => page.visible !== false);
 
 settingsPages.sort((a, b) => {
   const groupA = a.group || "";
@@ -35,7 +37,6 @@ settingsPages.sort((a, b) => {
 export default function Settings() {
   const [activeSection, setActiveSection] = useState(settingsPages[0]?.name || "");
 
-  // Build the sidebar items and insert separators when the group changes.
   const renderSidebar = () => {
     const items: React.ReactNode[] = [];
     let lastGroup: string | undefined = undefined;

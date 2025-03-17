@@ -1,12 +1,10 @@
 import { appWindow } from "@tauri-apps/api/window";
-import { Minus, Square, X, CircleDashed, CircleDot } from "lucide-react";
+import { Minus, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 
 export default function Navbar() {
   const [isWindowFocused, setIsWindowFocused] = useState(true);
-
-  const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected">("connected");
 
   useEffect(() => {
     const handleFocus = () => setIsWindowFocused(true);
@@ -14,33 +12,11 @@ export default function Navbar() {
     window.addEventListener("focus", handleFocus);
     window.addEventListener("blur", handleBlur);
 
-    setConnectionStatus(navigator.onLine ? "connected" : "disconnected");
-
-    function goOnline() {
-      setConnectionStatus("connected");
-    }
-    function goOffline() {
-      setConnectionStatus("disconnected");
-    }
-
-    window.addEventListener("online", goOnline);
-    window.addEventListener("offline", goOffline);
-
     return () => {
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("blur", handleBlur);
-      window.removeEventListener("online", goOnline);
-      window.removeEventListener("offline", goOffline);
     };
   }, []);
-
-  let ConnectionIcon = CircleDot;
-  let iconColor = "text-accent";
-
-  if (connectionStatus === "disconnected") {
-    ConnectionIcon = CircleDashed;
-    iconColor = "text-red-500";
-  }
 
   return (
     <div
@@ -57,7 +33,6 @@ export default function Navbar() {
         <h1 className="text-md font-semibold tracking-wide text-muted-foreground">
           SnipIt
         </h1>
-        <ConnectionIcon className={`w-4 h-4 ${iconColor}`} />
       </div>
 
       <div className="flex space-x-1">

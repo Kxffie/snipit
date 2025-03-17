@@ -17,6 +17,15 @@
       },
       "all": false,
       "shell": {
+        "execute": true,
+        "sidecar": true,
+        "scope": [
+          {
+            "name": "ollama",
+            "cmd": "ollama",
+            "args": true
+          }
+        ],
         "all": false,
         "open": true
       },

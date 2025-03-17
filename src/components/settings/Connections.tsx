@@ -1,57 +1,79 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plug } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectLabel,
+  SelectSeparator,
+  SelectGroup,
+} from "@/components/ui/select";
+import { Plug, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { checkOllamaInstalled, checkDeepSeekInstalled, installDeepSeekModel, listDeepSeekModels } from "@/lib/deepSeekService";
+import { saveSettings } from "@/db/db";
+import { checkOllamaInstalled, checkOllamaVersion, listModels } from "@/lib/modelService";
 
 export const settingsMeta = {
   name: "Connections",
+  description: "Manage API integrations, database connections, and more.",
   icon: <Plug className="w-4 h-4" />,
   group: "Main",
   order: 2,
+  visible: true,
 };
 
 export default function Connections() {
   const { toast } = useToast();
   const [isOllamaInstalled, setIsOllamaInstalled] = useState(false);
-  const [isDeepSeekInstalled, setIsDeepSeekInstalled] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<string>("deepseek-r1:7b");
-  const [downloadedModels, setDownloadedModels] = useState<string[]>([]);
+  const [ollamaVersion, setOllamaVersion] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string>("");
+  const [modelGroups, setModelGroups] = useState<
+    { group: string; models: string[] }[]
+  >([]);
+
+  // Helper to format version string: capitalize "ollama"
+  const formatVersion = (version: string) =>
+    version.replace(/^ollama/i, "Ollama");
+
+  // On mount, try to load a saved model from localStorage.
+  useEffect(() => {
+    const saved = localStorage.getItem("selectedModel");
+    if (saved) {
+      setSelectedModel(saved);
+    }
+  }, []);
 
   useEffect(() => {
     checkOllamaInstalled()
       .then(setIsOllamaInstalled)
-      .catch((err) => {
-        console.error(err);
-        setIsOllamaInstalled(false);
-      });
-    checkDeepSeekInstalled()
-      .then(setIsDeepSeekInstalled)
-      .catch((err) => {
-        console.error(err);
-        setIsDeepSeekInstalled(false);
-      });
+      .catch(() => setIsOllamaInstalled(false));
   }, []);
 
   useEffect(() => {
-    listDeepSeekModels()
-      .then((models) => {
-        setDownloadedModels(models);
-        if (models.length > 0 && !models.includes(selectedModel)) {
-          setSelectedModel(models[0]);
-          localStorage.setItem("selectedDeepSeekModel", models[0]);
-        }
-      })
+    if (isOllamaInstalled) {
+      checkOllamaVersion().then((version) => {
+        setOllamaVersion(version || "Unknown");
+      });
+    }
+  }, [isOllamaInstalled]);
+
+  useEffect(() => {
+    // List models from the library folder
+    listModels()
+      .then(setModelGroups)
       .catch((err) => {
-        console.error(err);
-        setDownloadedModels([]);
+        console.error("Error listing models:", err);
+        setModelGroups([]);
       });
   }, []);
 
+  // When the user changes model selection, update state and save.
   const handleModelChange = (value: string) => {
     setSelectedModel(value);
-    localStorage.setItem("selectedDeepSeekModel", value);
+    localStorage.setItem("selectedModel", value);
+    saveSettings({ selectedModel: value });
   };
 
   const handleDownloadOllama = async () => {
@@ -71,71 +93,81 @@ export default function Connections() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">Connections</h1>
-      <p className="mb-4">Manage API integrations, database connections, and more.</p>
+      <h1 className="text-2xl font-bold">{settingsMeta.name}</h1>
+      <p className="mb-4">{settingsMeta.description}</p>
       <div className="space-y-4">
+        {/* Ollama Integration */}
         <div className="border p-4 rounded-md">
-          <h3 className="text-lg font-semibold mb-2">DeepSeek Integration</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Ollama Integration</h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={async () => {
+                const version = await checkOllamaVersion();
+                setOllamaVersion(version || "Unknown");
+              }}
+            >
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+          </div>
           {isOllamaInstalled ? (
-            isDeepSeekInstalled ? (
-              <div className="space-y-2">
-                <p className="text-sm">DeepSeek is installed. Select one of the downloaded models:</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">Model:</span>
-                  <Select value={selectedModel} onValueChange={handleModelChange}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue placeholder="Select Model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {downloadedModels.length > 0 ? (
-                        downloadedModels.map((model) => (
-                          <SelectItem key={model} value={model}>
-                            {model}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <>
-                          <SelectItem value="deepseek-r1:1.5b">DeepSeek r1:1.5b</SelectItem>
-                          <SelectItem value="deepseek-r1:7b">DeepSeek r1:7b</SelectItem>
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+            ollamaVersion ? (
+              <p className="text-sm text-green-500">
+                Ollama is installed. {formatVersion(ollamaVersion)}
+              </p>
             ) : (
-              <div className="space-y-2">
-                <p className="text-sm text-red-500">DeepSeek is not installed.</p>
-                <p className="text-xs">To install, ensure Ollama is installed first. Then click the button below.</p>
-                <Button variant="outline" onClick={() => {
-                  installDeepSeekModel(selectedModel)
-                    .then((res) => {
-                      console.log("Installation output:", res);
-                      checkDeepSeekInstalled().then(setIsDeepSeekInstalled);
-                      toast({ title: "DeepSeek Installed", description: "DeepSeek model has been installed." });
-                    })
-                    .catch((err) => {
-                      console.error(err);
-                      toast({ title: "Error", description: "Failed to install DeepSeek.", variant: "destructive" });
-                    });
-                }}>
-                  Install DeepSeek
-                </Button>
-                <p className="text-xs mt-2">If Ollama is missing, download it:</p>
-                <Button variant="outline" onClick={handleDownloadOllama}>
-                  Download Ollama
-                </Button>
-              </div>
+              <p className="text-sm text-green-500">
+                Ollama is installed. Checking version...
+              </p>
             )
           ) : (
             <div className="space-y-2">
               <p className="text-sm text-red-500">Ollama is not installed.</p>
-              <p className="text-xs">Please download Ollama:</p>
               <Button variant="outline" onClick={handleDownloadOllama}>
                 Download Ollama
               </Button>
             </div>
           )}
+        </div>
+
+        {/* Model Integration */}
+        <div className="border p-4 rounded-md">
+          <h3 className="text-lg font-semibold mb-2">Model Integration</h3>
+          <p className="text-sm mb-2">
+            Select a model from your installed models:
+          </p>
+          <Select value={selectedModel} onValueChange={handleModelChange}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Select Model" />
+            </SelectTrigger>
+            <SelectContent>
+              {modelGroups.length > 0 ? (
+                modelGroups.map((group) => (
+                  <SelectGroup key={group.group}>
+                    <SelectLabel>{group.group}</SelectLabel>
+                    {group.models.map((model) => {
+                      const fullModel = `${group.group}:${model}`;
+                      const displayModel = `${group.group} ${model}`;
+                      return (
+                        <SelectItem key={fullModel} value={fullModel}>
+                          {displayModel}
+                        </SelectItem>
+                      );
+                    })}
+                    <SelectSeparator />
+                  </SelectGroup>
+                ))
+              ) : (
+                <>
+                  <SelectItem value="deepseek-r1:7b">deepseek-r1 7b</SelectItem>
+                  <SelectItem value="deepseek-r1:1.5b">
+                    deepseek-r1 1.5b
+                  </SelectItem>
+                </>
+              )}
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>
