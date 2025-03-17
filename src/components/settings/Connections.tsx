@@ -25,7 +25,7 @@ export const settingsMeta = {
 };
 
 export default function Connections() {
-  const { toast } = useToast();
+  useToast();
   const [isOllamaInstalled, setIsOllamaInstalled] = useState(false);
   const [ollamaVersion, setOllamaVersion] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>("");

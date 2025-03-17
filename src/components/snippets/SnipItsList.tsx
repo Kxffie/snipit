@@ -1,11 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  FileText,
   X,
   Search,
   Sparkles,
   Folders,
-  Tag,
   Filter,
   ChevronUp,
   ChevronDown,
