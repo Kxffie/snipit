@@ -14,6 +14,7 @@ import { Plug, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { saveSettings } from "@/db/db";
 import { checkOllamaInstalled, checkOllamaVersion, listModels } from "@/lib/modelService";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const settingsMeta = {
   name: "Connections",
@@ -91,7 +92,17 @@ export default function Connections() {
     }
   };
 
-  const notRecommendedGroups = ["deepseek-coder", "legacy-models"];
+  const refreshModels = async () => {
+    try {
+      const models = await listModels();
+      setModelGroups(models);
+    } catch (err) {
+      console.error("Error listing models:", err);
+      setModelGroups([]);
+    }
+  };
+
+  const notRecommendedGroups = ["deepseek-coder"];
 
   return (
     <div>
@@ -102,77 +113,88 @@ export default function Connections() {
         <div className="border p-4 rounded-md">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Ollama Integration</h3>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={async () => {
-                const version = await checkOllamaVersion();
-                setOllamaVersion(version || "Unknown");
-              }}
-            >
-              <RotateCcw className="w-4 h-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={async () => {
+                    const version = await checkOllamaVersion();
+                    setOllamaVersion(version || "Unknown");
+                  }}
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Refresh Ollama Version</TooltipContent>
+            </Tooltip>
           </div>
           {isOllamaInstalled ? (
             ollamaVersion ? (
-              <p className="text-sm text-green-500">
-                Ollama is installed. {formatVersion(ollamaVersion)}
-              </p>
+              <p className="text-sm text-green-500">Ollama is installed. {formatVersion(ollamaVersion)}</p>
             ) : (
-              <p className="text-sm text-green-500">
-                Ollama is installed. Checking version...
-              </p>
+              <p className="text-sm text-green-500">Ollama is installed. Checking version...</p>
             )
           ) : (
             <div className="space-y-2">
               <p className="text-sm text-red-500">Ollama is not installed.</p>
-              <Button variant="outline" onClick={handleDownloadOllama}>
-                Download Ollama
-              </Button>
+              <Button variant="outline" onClick={handleDownloadOllama}>Download Ollama</Button>
             </div>
           )}
         </div>
 
         {/* Model Integration */}
         <div className="border p-4 rounded-md">
-          <h3 className="text-lg font-semibold mb-2">Model Integration</h3>
-          <p className="text-sm mb-2">
-            Select a model from your installed models:
-          </p>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Model Selection</h3>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={refreshModels}>
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Refresh Model List</TooltipContent>
+            </Tooltip>
+          </div>
+          <p className="text-sm mb-2">Select a model from your installed models:</p>
           <Select value={selectedModel} onValueChange={handleModelChange}>
             <SelectTrigger className="w-64">
               <SelectValue placeholder="Select Model" />
             </SelectTrigger>
             <SelectContent>
-            {modelGroups.length > 0 ? (
-              modelGroups.map((group) => {
-                const isNotRecommended = notRecommendedGroups.includes(group.group);
-                return (
-                  <SelectGroup key={group.group}>
-                    <SelectLabel className={isNotRecommended ? "text-red-500" : ""}>
-                      {group.group} {isNotRecommended && "(Not Recommended)"}
-                    </SelectLabel>
-                    {group.models.map((model) => {
-                      const fullModel = `${group.group}:${model}`;
-                      const displayModel = `${group.group} ${model}`;
-                      return (
-                        <SelectItem key={fullModel} value={fullModel}>
-                          {displayModel}
-                        </SelectItem>
-                      );
-                    })}
-                    <SelectSeparator />
-                  </SelectGroup>
-                );
-              })
-            ) : (
-              <>
-                <SelectItem value="deepseek-r1:7b">deepseek-r1 7b</SelectItem>
-                <SelectItem value="deepseek-r1:1.5b">deepseek-r1 1.5b</SelectItem>
-              </>
-            )}
+              {modelGroups.length > 0 ? (
+                modelGroups.map((group) => {
+                  const isNotRecommended = notRecommendedGroups.includes(group.group);
+                  return (
+                    <SelectGroup key={group.group}>
+                      <SelectLabel className={isNotRecommended ? "text-red-500" : ""}>
+                        {group.group} {isNotRecommended && "(Not Recommended)"}
+                      </SelectLabel>
+                      {group.models.map((model) => {
+                        const fullModel = `${group.group}:${model}`;
+                        const displayModel = `${group.group} ${model}`;
+                        return <SelectItem key={fullModel} value={fullModel}>{displayModel}</SelectItem>;
+                      })}
+                      <SelectSeparator />
+                    </SelectGroup>
+                  );
+                })
+              ) : (
+                <>
+                  <SelectItem value="deepseek-r1:7b">deepseek-r1 7b</SelectItem>
+                  <SelectItem value="deepseek-r1:1.5b">deepseek-r1 1.5b</SelectItem>
+                </>
+              )}
             </SelectContent>
           </Select>
+          <a
+            href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-accent hover:underline mt-2"
+          >
+            Click to learn more about downloading models.
+          </a>
         </div>
       </div>
     </div>
