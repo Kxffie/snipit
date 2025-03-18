@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  X,
   Search,
   Sparkles,
   Folders,
@@ -92,7 +91,7 @@ import {
   SortOption,
 } from "@/lib/SnipItService";
 import { useCollectionsQuery, Collection } from "@/lib/CollectionsService";
-import { loadSettings, saveSettings } from "@/db/db";
+import { loadSettings } from "@/db/db";
 import {
   Tooltip,
   TooltipContent,
@@ -162,12 +161,12 @@ export const SnipItsList = ({
     return Array.from(new Set(snippets.map((s) => s.language).filter(Boolean)));
   }, [snippets]);
 
-  const handleCollectionSelect = async (col: Collection) => {
-    setSelectedCollection(col);
-    await saveSettings({ selectedCollectionId: col.id });
-    refetchSnippets();
-    setIsCollectionPopoverOpen(false);
-  };
+  // const handleCollectionSelect = async (col: Collection) => {
+  //   setSelectedCollection(col);
+  //   await saveSettings({ selectedCollectionId: col.id });
+  //   refetchSnippets();
+  //   setIsCollectionPopoverOpen(false);
+  // };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
