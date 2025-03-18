@@ -6,7 +6,7 @@ export const settingsMeta = {
   icon: <Cable className="w-4 h-4" />,
   group: "Info",
   order: 2,
-  visible: true,
+  visible: false,
 };
 
 export default function Telemetry() {

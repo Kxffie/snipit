@@ -86,70 +86,81 @@ async function initializeSettings(snipitDir: string, osDetails: string): Promise
   console.log("Initializing settings.json...");
   const settingsPath = await path.join(snipitDir, "settings.json");
   const defaultCollectionPath = await path.join(snipitDir, "snippets");
+
   try {
     const settingsExists = await fs.exists(settingsPath);
-    if (!settingsExists) {
-      console.log("settings.json not found. Creating with default values...");
-      const initialSettings = {
-        os: osDetails,
-        firstStartup: new Date().toISOString(),
-        collectionPath: defaultCollectionPath,
-        selectedModel: "deepseek-r1:7b",
-        collections: [],
-        telemetry: {
-          usage: true,
-          errorReports: false,
-        },
-      };
-      await fs.writeTextFile(settingsPath, JSON.stringify(initialSettings, null, 2));
-      console.log("settings.json created successfully.");
-    } else {
-      const existingSettings = JSON.parse(await fs.readTextFile(settingsPath));
-      let updated = false;
-      if (!existingSettings.collectionPath) {
-        existingSettings.collectionPath = defaultCollectionPath;
-        console.log("Added default collectionPath to settings.");
-        updated = true;
-      }
-      if (!("telemetry" in existingSettings)) {
-        existingSettings.telemetry = { usage: true, errorReports: false };
-        console.log("Added default telemetry settings.");
-        updated = true;
-      }
-      if (!existingSettings.selectedModel) {
-        existingSettings.selectedModel = "deepseek-r1:7b";
-        console.log("Added default selected model to settings.");
-        updated = true;
-      }
-      if (updated) {
-        await fs.writeTextFile(settingsPath, JSON.stringify(existingSettings, null, 2));
+    let existingSettings: any = {};
+
+    if (settingsExists) {
+      try {
+        existingSettings = JSON.parse(await fs.readTextFile(settingsPath));
+      } catch (error) {
+        console.error("Error parsing settings.json. Resetting file.");
+        existingSettings = {};
       }
     }
-    await getCollections();
-    let collections = await getCollections();
-    if (!Array.isArray(collections)) {
-      console.warn("collections is not an array. Resetting to an empty array.");
-      collections = [];
+
+    let updated = false;
+
+    // Ensure required fields exist
+    if (!existingSettings.os) {
+      existingSettings.os = osDetails;
+      console.log("Added missing 'os' field.");
+      updated = true;
     }
+    if (!existingSettings.firstStartup) {
+      existingSettings.firstStartup = new Date().toISOString();
+      console.log("Added missing 'firstStartup' field.");
+      updated = true;
+    }
+    if (!existingSettings.collectionPath) {
+      existingSettings.collectionPath = defaultCollectionPath;
+      console.log("Added default collectionPath.");
+      updated = true;
+    }
+    if (!existingSettings.selectedModel) {
+      existingSettings.selectedModel = "deepseek-r1:7b"; // Default model
+      console.log("Added default selected model.");
+      updated = true;
+    }
+    if (!existingSettings.telemetry) {
+      existingSettings.telemetry = { usage: true, errorReports: false };
+      console.log("Added default telemetry settings.");
+      updated = true;
+    }
+    if (!Array.isArray(existingSettings.collections)) {
+      existingSettings.collections = [];
+      console.log("Reset collections to an empty array.");
+      updated = true;
+    }
+
+    // Ensure the default collection exists
     const defaultCollection: Collection = {
       id: "default",
       path: defaultCollectionPath,
       name: "Default Collection",
     };
-    if (!collections.some((col: Collection) => col.id === defaultCollection.id)) {
+    if (!existingSettings.collections.some((col: Collection) => col.id === defaultCollection.id)) {
       console.log("Default collection not found. Adding...");
       await fs.createDir(defaultCollectionPath, { recursive: true });
-      await addCollection(defaultCollection);
-      console.log("Default collection added successfully.");
-    } else {
-      console.log("Default collection already exists.");
+      existingSettings.collections.push(defaultCollection);
+      updated = true;
     }
+
+    if (updated) {
+      await fs.writeTextFile(settingsPath, JSON.stringify(existingSettings, null, 2));
+      console.log("Updated settings.json with missing fields.");
+    } else {
+      console.log("settings.json is already up to date.");
+    }
+
     console.log("Settings initialization complete.");
   } catch (error) {
     console.error("Error initializing settings.json:", error);
     throw error;
   }
 }
+
 
 export function useDeviceInfo() {
   return useQuery<DeviceInfo>({

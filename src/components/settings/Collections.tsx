@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getCollections, addCollection, removeCollection, Collection } from "@/lib/CollectionsService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FolderOpen, Trash, X, Check } from "lucide-react";
+import { FolderOpen, Trash } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -81,41 +81,52 @@ export default function Collections() {
     <div>
       <h1 className="text-2xl font-bold">{settingsMeta.name}</h1>
       <p className="mb-4">{settingsMeta.description}</p>
-      <Button variant="outline" onClick={() => setNewCollection({ name: "", path: "" })}>
-        <FolderOpen className="w-4 h-4 mr-1" /> Add Collection
-      </Button>
-      {newCollection && (
-        <div className="flex items-center gap-3 border p-2 rounded-md mt-3">
-          <Input
-            type="text"
-            placeholder="Collection Name"
-            value={newCollection.name}
-            onChange={(e) => setNewCollection({ ...newCollection, name: e.target.value })}
-            className="flex-1"
-          />
-          <Input
-            type="text"
-            placeholder="Select Folder..."
-            value={newCollection.path}
-            onClick={handleSelectFolder}
-            readOnly
-            className="flex-1 cursor-pointer truncate"
-          />
-          <Button size="icon" variant="outline" onClick={() => addCollectionMutation.mutate(newCollection!)}>
-            <Check className="w-5 h-5 text-green-600" />
-          </Button>
-          <Button size="icon" variant="outline" onClick={() => setNewCollection(null)}>
-            <X className="w-5 h-5 text-red-600" />
-          </Button>
+      <div className="space-y-4">
+        {/* Add Collection Area */}
+        <div className="border p-4 rounded-md">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Add Collection</h3>
+            {!newCollection && (
+              <Button variant="outline" onClick={() => setNewCollection({ name: "", path: "" })}>
+                Add Collection
+              </Button>
+            )}
+          </div>
+          {newCollection && (
+            <div className="mt-4 space-y-3">
+              <Input
+                type="text"
+                placeholder="Collection Name"
+                value={newCollection.name}
+                onChange={(e) => setNewCollection({ ...newCollection, name: e.target.value })}
+              />
+              <Input
+                type="text"
+                placeholder="Select Folder..."
+                value={newCollection.path}
+                onClick={handleSelectFolder}
+                readOnly
+                className="cursor-pointer truncate"
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setNewCollection(null)}>
+                  Cancel
+                </Button>
+                <Button variant="outline" onClick={() => addCollectionMutation.mutate(newCollection!)}>
+                  Save
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
-      {isLoading ? (
-        <p className="mt-3">Loading...</p>
-      ) : (
-        <div className="mt-4 space-y-2">
-          {collections.map((col: Collection) => (
-            <div key={col.id} className="p-3 bg-secondary text-secondary-foreground rounded-md shadow-sm flex items-center justify-between">
-              <div className="flex flex-col w-[80%]">
+
+        {/* Collections List */}
+        {isLoading ? (
+          <p className="mt-3">Loading...</p>
+        ) : (
+          collections.map((col: Collection) => (
+            <div key={col.id} className="border p-4 rounded-md flex items-center justify-between">
+              <div className="flex flex-col">
                 <span className="font-medium truncate">{col.name}</span>
                 <span className="text-xs truncate text-muted-foreground">{col.path}</span>
               </div>
@@ -141,9 +152,9 @@ export default function Collections() {
                 </AlertDialogContent>
               </AlertDialog>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </div>
   );
 }
