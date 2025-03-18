@@ -53,6 +53,12 @@ export const SnipItView = ({
     );
   };
 
+  const renamedVariables: Record<string, string> = {
+    "C++": "cpp",
+    "C#": "csharp",
+    "Arduino C": "c",
+  };
+
   return (
     <div className="h-full w-full flex flex-col bg-background text-foreground relative">
       <div className="flex flex-1 overflow-hidden">
@@ -65,8 +71,8 @@ export const SnipItView = ({
           <p className="font-bold text-foreground mb-1">Language</p>
           <p className="mb-4">{snippet.language}</p>
 
-          <p className="font-bold text-foreground mb-1">Framework</p>
-          <p className="mb-4">{snippet.framework || "N/A"}</p>
+          {/* <p className="font-bold text-foreground mb-1">Framework</p>
+          <p className="mb-4">{snippet.framework || "N/A"}</p> */}
 
           <p className="font-bold text-foreground mb-1">Created At</p>
           <p className="mb-4">{new Date(snippet.date).toLocaleString()}</p>
@@ -86,7 +92,7 @@ export const SnipItView = ({
 
         <div className="flex-1 overflow-auto p-4 hide-scrollbar">
           <SyntaxHighlighter
-            language={snippet.language === "C++" ? "cpp" : snippet.language.toLowerCase()}
+            language={renamedVariables[snippet.language] || snippet.language.toLowerCase()}
             style={tomorrow}
             showLineNumbers
             customStyle={{

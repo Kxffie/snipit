@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EllipsisVertical, Star, Pencil, Copy, Trash } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { tomorrow, prism } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Snippet, useSnippetMutations } from "@/lib/SnipItService";
 import { useToast } from "@/hooks/use-toast";
 
@@ -78,6 +78,12 @@ export const SnipItCard = ({
     );
   };
 
+  const renamedVariables: Record<string, string> = {
+    "C++": "cpp",
+    "C#": "csharp",
+    "Arduino C": "c",
+  };
+
   return (
     <>
       <Card className="border bg-muted p-3 rounded-md shadow-sm">
@@ -121,9 +127,7 @@ export const SnipItCard = ({
         </div>
         <CardContent className="bg-background p-3 rounded-md border">
           <SyntaxHighlighter
-          // check if snippet language is C++, if so use cpp instead, else just use snippet.language.toLowerCase()
-            language={snippet.language === "C++" ? "cpp" : snippet.language.toLowerCase()}
-            // if theme is dark use tomorrow, else use prism
+            language={renamedVariables[snippet.language] || snippet.language.toLowerCase()}
             style={tomorrow}
             showLineNumbers
             customStyle={{

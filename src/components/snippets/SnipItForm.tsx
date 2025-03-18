@@ -362,6 +362,12 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
     setTags([...tags, newTag]);
   };
 
+  const renamedVariables: Record<string, string> = {
+    "C++": "cpp",
+    "C#": "csharp",
+    "Arduino C": "c",
+  };
+
   return (
     <ThemeProvider>
       <TooltipProvider>
@@ -639,26 +645,22 @@ export const SnipItForm: React.FC<SnipItFormProps> = ({
 
             {/* CODE EDITOR */}
             <div className="flex-1 overflow-auto hide-scrollbar">
-              <MonacoEditor
-                height="100%"
-                language={
-                  language === "C++"
-                    ? "cpp"
-                    : language?.toLowerCase() || "plaintext"
-                }
-                theme="vs-dark"
-                value={code}
-                onChange={(value) => setCode(value || "")}
-                options={{
-                  fontSize: 14,
-                  minimap: { enabled: false },
-                  wordWrap: "on",
-                  automaticLayout: true,
-                  scrollBeyondLastLine: false,
-                  scrollbar: { vertical: "hidden", horizontal: "hidden" },
-                  overviewRulerLanes: 0,
-                }}
-              />
+            <MonacoEditor
+              height="100%"
+              language={renamedVariables[language] || language?.toLowerCase() || "plaintext"}
+              theme="vs-dark"
+              value={code}
+              onChange={(value) => setCode(value || "")}
+              options={{
+                fontSize: 14,
+                minimap: { enabled: false },
+                wordWrap: "on",
+                automaticLayout: true,
+                scrollBeyondLastLine: false,
+                scrollbar: { vertical: "hidden", horizontal: "hidden" },
+                overviewRulerLanes: 0,
+              }}
+            />
             </div>
           </div>
 

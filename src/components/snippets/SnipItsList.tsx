@@ -11,6 +11,7 @@ import {
 import Icon from "@mdi/react";
 import {
   mdiLanguageJavascript,
+  mdiLanguageCsharp,
   mdiLanguagePython,
   mdiLanguageC,
   mdiLanguageCpp,
@@ -28,15 +29,43 @@ import {
   mdiLanguageLua,
   mdiLanguageHaskell,
   mdiCodeBraces,
+  mdiBash,
 } from "@mdi/js";
+import { motion } from "framer-motion";
+
+const SectionToggle = ({
+  title,
+  isOpen,
+  onToggle,
+}: {
+  title: string;
+  isOpen: boolean;
+  onToggle: () => void;
+}) => {
+  return (
+    <button
+      onClick={onToggle}
+      className="w-full flex items-center justify-between py-2 text-md font-semibold text-muted-foreground hover:text-foreground transition-all"
+    >
+      <span>{title}</span>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-4 h-4"
+      >
+        {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+      </motion.div>
+    </button>
+  );
+};
 
 const languageIcons: Record<string, string> = {
   javascript: mdiLanguageJavascript,
   typescript: mdiLanguageTypescript,
   python: mdiLanguagePython,
   c: mdiLanguageC,
-  "c++": mdiLanguageCpp,
   cpp: mdiLanguageCpp,
+  csharp: mdiLanguageCsharp,
   java: mdiLanguageJava,
   go: mdiLanguageGo,
   rust: mdiLanguageRust,
@@ -49,6 +78,7 @@ const languageIcons: Record<string, string> = {
   markdown: mdiLanguageMarkdown,
   lua: mdiLanguageLua,
   haskell: mdiLanguageHaskell,
+  bash: mdiBash,
 };
 import { SnipItView } from "./SnipItView";
 import { SnipItForm } from "./SnipItForm";
@@ -100,6 +130,8 @@ export const SnipItsList = ({
   const [starredFirst, setStarredFirst] = useState(true);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [isCollectionPopoverOpen, setIsCollectionPopoverOpen] = useState(false);
+  const [isFavoritesOpen, setIsFavoritesOpen] = useState(true);
+  const [isLanguagesOpen, setIsLanguagesOpen] = useState(true);
 
   const { data: collections = [], isLoading: isLoadingCollections } = useCollectionsQuery();
   const {
@@ -139,6 +171,20 @@ export const SnipItsList = ({
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchQuery.trim() !== "") {
+      const normalizedSearch = searchQuery.trim().toLowerCase();
+  
+      // Prevent duplicate filters
+      if (!filters.includes(normalizedSearch)) {
+        setFilters([...filters, normalizedSearch]);
+      }
+  
+      // Clear the search box after adding the filter
+      setSearchQuery("");
+    }
   };
 
   const removeFilter = (filter: string) => {
@@ -194,141 +240,109 @@ export const SnipItsList = ({
         collectionPath={selectedCollection?.path}
       />
     );
-  }
+  };
+
+  const renamedVariables: Record<string, string> = {
+    "C++": "cpp",
+    "C#": "csharp",
+    "Arduino C": "c",
+  };
 
   return (
     <div className="h-full flex">
       {/* Sidebar */}
-      <aside className="w-64 p-4 border-r flex flex-col">
-        <div className="flex-1">
-          <h3 className="text-md font-semibold mb-2 text-muted-foreground">
-            Favorites
-          </h3>
-          <div className="space-y-2 mb-4">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={filters.length === 0 ? "secondary" : "ghost"}
-                    className="w-full justify-start"
-                    onClick={() => setFilters([])}
-                  >
-                    <Folders className="w-4 h-4" />
-                    <span className="ml-2">All</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Show all snippets</p>
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={filters.includes("starred") ? "secondary" : "ghost"}
-                    className="w-full justify-start"
-                    onClick={() => toggleFilter("starred")}
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span className="ml-2">Starred</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Show starred snippets</p>
-                </TooltipContent>
-              </Tooltip>
-              {/* <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={filters.includes("unlabeled") ? "secondary" : "ghost"}
-                    className="w-full justify-start"
-                    onClick={() => toggleFilter("unlabeled")}
-                  >
-                    <Tag className="w-4 h-4" />
-                    <span className="ml-2">Unlabeled</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Show snippets without tags</p>
-                </TooltipContent>
-              </Tooltip> */}
-            </TooltipProvider>
-          </div>
+          <aside className="w-64 p-4 border-r flex flex-col">
+            <div className="flex-1">
+              
+              {/* Favorites Section */}
+              <SectionToggle title="Favorites" isOpen={isFavoritesOpen} onToggle={() => setIsFavoritesOpen(!isFavoritesOpen)} />
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={isFavoritesOpen ? { height: "auto", opacity: 1 } : { height: 0, opacity: 0 }}
+                transition={{ duration: 0.1 }}
+                className="overflow-hidden"
+              >
+                <div className="space-y-2 mb-4">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={filters.length === 0 ? "secondary" : "ghost"}
+                          className="w-full justify-start"
+                          onClick={() => setFilters([])}
+                        >
+                          <Folders className="w-4 h-4" />
+                          <span className="ml-2">All</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Show all snippets</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={filters.includes("starred") ? "secondary" : "ghost"}
+                          className="w-full justify-start"
+                          onClick={() => toggleFilter("starred")}
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          <span className="ml-2">Starred</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Show starred snippets</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </motion.div>
 
-          {/* Languages Section */}
-          <div className={availableLanguages.length > 0 ? "" : "hidden"}>
-            <h3 className="text-md font-semibold mb-2 text-muted-foreground">Languages</h3>
-            <div className="space-y-2 flex-1 overflow-auto">
-              {availableLanguages.length > 0 ? (
-                availableLanguages.map((lang) => {
-                  const normalizedLang = lang.toLowerCase();
-                  return (
-                    <Button
-                      key={lang}
-                      variant={filters.includes(normalizedLang) ? "secondary" : "ghost"}
-                      className="w-full justify-start"
-                      onClick={() => toggleFilter(lang)}
-                    >
-                      <Icon path={languageIcons[normalizedLang] || mdiCodeBraces} size={0.8} className="mr-2" />
-                      <span>{lang}</span>
-                    </Button>
-                  );
-                })
-              ) : (
-                <p className="text-sm text-muted-foreground">No languages found</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Collection Selector */}
-        <div className="mt-4">
-          <Popover open={isCollectionPopoverOpen} onOpenChange={setIsCollectionPopoverOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="w-full flex items-center justify-between">
-                {selectedCollection?.name ?? "Select Collection"}
-                {isCollectionPopoverOpen ? (
-                  <ChevronUp className="w-4 h-4" />
-                ) : (
-                  <ChevronDown className="w-4 h-4" />
+              {/* Languages Section */}
+              <SectionToggle title="Languages" isOpen={isLanguagesOpen} onToggle={() => setIsLanguagesOpen(!isLanguagesOpen)} />
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={isLanguagesOpen ? { height: "auto", opacity: 1 } : { height: 0, opacity: 0 }}
+                transition={{ duration: 0.1 }}
+                className="overflow-hidden"
+              >
+                {availableLanguages.length > 0 && (
+                  <div className="space-y-2 flex-1 overflow-auto">
+                    {availableLanguages.map((lang) => {
+                      const normalizedLang = renamedVariables[lang] || lang.toLowerCase();
+                      return (
+                        <Button
+                          key={lang}
+                          variant={filters.includes(normalizedLang) ? "secondary" : "ghost"}
+                          className="w-full justify-start"
+                          onClick={() => toggleFilter(lang)}
+                        >
+                          <Icon path={languageIcons[normalizedLang] || mdiCodeBraces} size={0.8} className="mr-2" />
+                          <span>{lang}</span>
+                        </Button>
+                      );
+                    })}
+                  </div>
                 )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent side="top" sideOffset={8} className="p-2 w-full max-h-48 overflow-y-auto">
-              {isLoadingCollections ? (
-                <p className="text-sm text-muted-foreground">Loading collections...</p>
-              ) : collections.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No collections found.</p>
-              ) : (
-                collections.map((col) => (
-                  <Button
-                    key={col.id}
-                    variant="ghost"
-                    className="w-full justify-start"
-                    onClick={() => handleCollectionSelect(col)}
-                  >
-                    {col.name}
-                  </Button>
-                ))
-              )}
-            </PopoverContent>
-          </Popover>
-        </div>
-      </aside>
+              </motion.div>
+            </div>
+          </aside>
 
       {/* Main Content Area */}
       <main className="flex-1 p-6 overflow-hidden flex flex-col rounded-tl-lg">
         <TooltipProvider>
           <div className="flex items-center space-x-2 mb-4">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder='Search snippets... (e.g., title:React content:useState)'
-                className="pl-10 w-full focus:border-accent"
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
-            </div>
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder='Search snippets... (e.g., title:React content:useState)'
+              className="pl-10 w-full focus:border-accent"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onKeyDown={handleSearchKeyDown}
+            />
+          </div>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
@@ -390,19 +404,21 @@ export const SnipItsList = ({
           </div>
         </TooltipProvider>
 
-        {filters.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {filters.map((filter) => (
-              <Badge
-                key={filter}
-                className="flex items-center space-x-2 px-3 py-1 bg-secondary text-secondary-foreground"
-              >
-                <span>{filter}</span>
-                <X className="w-4 h-4 cursor-pointer" onClick={() => removeFilter(filter)} />
-              </Badge>
-            ))}
-          </div>
-        )}
+        {/* Styled Search Filters (Same as Tags) */}
+      {filters.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2 mb-4">
+          {filters.map((filter, index) => (
+            <Badge
+              key={index}
+              onClick={() => removeFilter(filter)}
+              title={filter}
+              className="hover:bg-accent hover:text-secondary px-3 py-1 bg-secondary text-secondary-foreground rounded-md text-xs cursor-pointer max-w-[6.5rem] overflow-hidden whitespace-nowrap text-ellipsis"
+            >
+              {filter.length > 10 ? filter.slice(0, 10) + "…" : filter}
+            </Badge>
+          ))}
+        </div>
+      )}
 
         <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hidden">
           {isLoadingSnippets ? (
@@ -428,3 +444,4 @@ export const SnipItsList = ({
     </div>
   );
 };
+  
