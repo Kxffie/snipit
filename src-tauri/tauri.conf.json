@@ -58,8 +58,8 @@
     "windows": [
       {
         "title": "SnipIt",
-        "width": 960,
-        "height": 540,
+        "width": 1296,
+        "height": 839,
         "decorations": false,
         "resizable": true,
         "fullscreen": false

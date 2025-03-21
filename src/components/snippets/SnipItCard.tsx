@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EllipsisVertical, Star, Pencil, Copy, Trash } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { tomorrow, prism } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Snippet, useSnippetMutations } from "@/lib/SnipItService";
 import { useToast } from "@/hooks/use-toast";
 

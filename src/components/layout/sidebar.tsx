@@ -1,10 +1,10 @@
-import { Home, SquareDashedBottomCode , Settings, Users, Trash, BookMarked } from "lucide-react";
+import { Home, SquareDashedBottomCode , Settings, Users, Trash, BookMarked, BookKey } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
 
-type PageType = "home" | "snipits" | "settings";
+type PageType = "home" | "snipits" | "secrets" | "settings";
 
 type NavItem =
   | { type: "item"; icon: React.ElementType; page: PageType, label: string }
@@ -13,6 +13,7 @@ type NavItem =
 const topNavItems: NavItem[] = [
   { type: "item", icon: Home, page: "home", label: "Home" },
   { type: "item", icon: SquareDashedBottomCode, page: "snipits", label: "Snippets" },
+  { type: "item", icon: BookKey, page: "secrets", label: "Secrets" },
   { type: "separator" },
   // { type: "item", icon: Users, page: "home", label: "Users" },
   // { type: "item", icon: BookMarked, page: "home", label: "Docs" },
