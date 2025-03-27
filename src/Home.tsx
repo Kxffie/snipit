@@ -78,6 +78,7 @@ export const Home = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
 
           <div className="sm:flex-1">
+          {/* Text */}
             <p className="text-sm text-muted-foreground">Welcome</p>
             <h1 className="mt-1 text-4xl sm:text-5xl font-bold inline-block py-1 text-accent mb-2">
               SnipIt
@@ -87,10 +88,20 @@ export const Home = () => {
           </div>
 
           <div className="flex-shrink-0">
+          {/* Logo */}
             <img
-              src=""
-              alt="Placeholder"
-              className="w-64 h-64 object-cover rounded-md shadow"
+              alt="SnipIt Logo"
+              className="w-64 h-64 bg-accent"
+              style={{
+                maskImage: 'url(SnipIt-logo-white.png)',
+                WebkitMaskImage: 'url(SnipIt-logo-white.png)',
+                maskRepeat: 'no-repeat',
+                WebkitMaskRepeat: 'no-repeat',
+                maskSize: 'contain',
+                WebkitMaskSize: 'contain',
+                maskPosition: 'center',
+                WebkitMaskPosition: 'center',
+              }}
             />
           </div>
         </div>
