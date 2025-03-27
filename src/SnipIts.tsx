@@ -82,7 +82,7 @@ import {
 import { useCollectionsQuery, Collection } from "@/lib/CollectionsService";
 import { loadSettings, saveSettings } from "@/db/db";
 
-// BackgroundEffects for a subtle animated background
+// Subtle animated background
 const BackgroundEffects = () => {
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -99,7 +99,7 @@ const BackgroundEffects = () => {
       onMouseMove={handleMouseMove}
       style={{ backgroundPosition }}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_var(--x,_--y),_rgba(255,255,255,0.05),_transparent_80%)] pointer-events-none" />
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_var(--x,_--y),_rgba(255,255,255,0.05),_transparent_80%)]" />
       <motion.div
         className="absolute w-96 h-96 bg-purple-500/20 blur-3xl rounded-full -top-20 -left-20"
         animate={{ rotate: 360 }}
@@ -155,6 +155,14 @@ export const SnipIts = () => {
     return Array.from(new Set(snippets.map((s) => s.language).filter(Boolean)));
   }, [snippets]);
 
+  const sideFiltered = useMemo(() => {
+    return filterBySide(snippets, filters, availableLanguages);
+  }, [snippets, filters, availableLanguages]);
+
+  const finalSnippets = useMemo(() => {
+    return filterBySearch(sideFiltered, searchQuery);
+  }, [sideFiltered, searchQuery]);
+
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     setSearchQuery(e.target.value);
   }
@@ -200,14 +208,6 @@ export const SnipIts = () => {
     }
   }
 
-  const sideFiltered = useMemo(() => {
-    return filterBySide(snippets, filters, availableLanguages);
-  }, [snippets, filters, availableLanguages]);
-
-  const finalSnippets = useMemo(() => {
-    return filterBySearch(sideFiltered, searchQuery);
-  }, [sideFiltered, searchQuery]);
-
   const SectionToggle = ({
     title,
     isOpen,
@@ -241,6 +241,7 @@ export const SnipIts = () => {
       .map(([tag]) => tag);
   }, [snippets]);
 
+  // If the user is editing a snippet
   if (editingSnippetId !== null) {
     return (
       <SnipItForm
@@ -252,6 +253,7 @@ export const SnipIts = () => {
     );
   }
 
+  // If the user is viewing a snippet
   if (selectedSnippet) {
     return (
       <SnipItView
@@ -265,13 +267,14 @@ export const SnipIts = () => {
   }
 
   return (
-    <div className="relative min-h-screen w-full bg-gradient-to-br from-[#0f0f11] via-[#101113] to-[#0c0c0e]">
+    <div className="relative w-full h-screen bg-gradient-to-br from-[#0f0f11] via-[#101113] to-[#0c0c0e]">
       <BackgroundEffects />
 
-      {/* Outer container with padding for spacing */}
-      <div className="relative z-10 container mx-auto py-8 px-6">
-        <div className="flex gap-6">
-          {/* Sidebar (only as tall as needed, scrolls if too tall) */}
+      {/* Main layout: fill the screen, but with some padding */}
+      <div className="relative z-10 flex flex-col h-full p-4">
+        {/* The row that holds sidebar + main content */}
+        <div className="flex flex-1 gap-6 overflow-hidden">
+          {/* Sidebar: only as tall as its content, but scrolls if needed */}
           <div className="w-64 bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg shadow-lg flex flex-col">
             <div className="flex-1 overflow-y-auto px-4 py-4">
               <SectionToggle
@@ -422,8 +425,8 @@ export const SnipIts = () => {
             </div>
           </div>
 
-          {/* Main content area (scrolls if there's a large number of snippets) */}
-          <main className="flex-1 bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg shadow-lg flex flex-col">
+          {/* Main content area */}
+          <main className="flex-1 bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg shadow-lg flex flex-col overflow-hidden">
             <div className="p-6">
               <TooltipProvider>
                 <div className="flex items-center space-x-2 mb-4">
@@ -547,7 +550,8 @@ export const SnipIts = () => {
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 space-y-3 pb-6 scrollbar-hidden">
+            {/* Scroll area for snippet cards */}
+            <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-3 scrollbar-hidden">
               {isLoadingSnippets ? (
                 <p>Loading snippets...</p>
               ) : finalSnippets.length === 0 ? (
