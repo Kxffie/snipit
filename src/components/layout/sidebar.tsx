@@ -2,7 +2,12 @@ import { NavLink } from "react-router-dom";
 import { Home, SquareDashedBottomCode, Settings, BookKey } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 type PageType = "home" | "snipits" | "secrets" | "settings";
 
@@ -15,7 +20,6 @@ const topNavItems: NavItem[] = [
   { type: "item", icon: SquareDashedBottomCode, page: "snipits", label: "Snippets" },
   { type: "item", icon: BookKey, page: "secrets", label: "Secrets" },
   { type: "separator" },
-  // Additional top items can be added here
 ];
 
 const bottomNavItems: NavItem[] = [
@@ -40,22 +44,28 @@ function mapPageToPath(page: PageType): string {
 function renderNavItems(items: NavItem[]) {
   return items.map((navItem, index) => {
     if (navItem.type === "separator") {
-      return <Separator key={`sep-${index}`} className="my-2 w-full" />;
+      return <Separator key={`sep-${index}`} className="my-2 w-full bg-white/10" />;
     }
+
     const { icon: Icon, page, label } = navItem;
     const path = mapPageToPath(page);
 
     return (
       <Tooltip key={page}>
         <TooltipTrigger asChild>
-          <NavLink to={path}>
-            <Button variant="ghost" size="icon">
-              <Icon className="w-4 h-4" />
-            </Button>
+          <NavLink
+            to={path}
+            className={({ isActive }) =>
+              `group relative flex items-center justify-center rounded-lg p-2 transition hover:bg-white/10 ${
+                isActive ? "ring-2 ring-white/30 bg-white/10" : ""
+              }`
+            }
+          >
+            <Icon className="w-5 h-5 text-white group-hover:text-accent transition" />
           </NavLink>
         </TooltipTrigger>
-        <TooltipContent>
-          <p>{label}</p>
+        <TooltipContent side="right" className="text-white text-xs shadow-xl shadow-black/30 bg-white/10 backdrop-blur-sm border border-white/10">
+          {label}
         </TooltipContent>
       </Tooltip>
     );
@@ -65,16 +75,12 @@ function renderNavItems(items: NavItem[]) {
 export default function Sidebar() {
   return (
     <TooltipProvider>
-      <nav className="h-full w-16 flex flex-col items-center bg-secondary shadow-md p-2">
+      <nav className="h-full w-16 flex flex-col items-center justify-between bg-white/5 backdrop-blur-lg border-r border-white/10 shadow-lg py-4">
         {/* Top section */}
-        <div className="flex flex-col items-center gap-4 mt-4">
-          {renderNavItems(topNavItems)}
-        </div>
-        <div className="flex-grow" />
+        <div className="flex flex-col items-center gap-3">{renderNavItems(topNavItems)}</div>
+
         {/* Bottom section */}
-        <div className="flex flex-col items-center gap-4 mb-4">
-          {renderNavItems(bottomNavItems)}
-        </div>
+        <div className="flex flex-col items-center gap-3">{renderNavItems(bottomNavItems)}</div>
       </nav>
     </TooltipProvider>
   );
