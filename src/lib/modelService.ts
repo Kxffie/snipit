@@ -85,6 +85,7 @@ export async function listModels(): Promise<{ group: string; models: string[] }[
     return [];
   }
 }
+
 export async function runModel(
   prompt: string,
   model: string,
